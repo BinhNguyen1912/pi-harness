@@ -42,4 +42,4 @@
 ### Task 3: Publish
 
 - [x] Create the owner's `pi-myself` fork after local review.
-- [ ] Push the verified changes and confirm the remote content.
+- [x] Push the verified changes and confirm the remote content.
