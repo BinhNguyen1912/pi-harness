@@ -23,7 +23,7 @@ Everything pi-myself adds around the vendored tree: `.pi/` (extensions, skills, 
 _Avoid_: "the framework", "runtime config"
 
 **Backend (tracker)**:
-Which issue-tracker implementation the `tracker` tool uses: the **local backend** (`.scratch/<feature>/issues/NN-<slug>.md` + `map.md`, the local-markdown convention) or the **GitHub backend** (`gh-*` ops over the `gh` CLI, issues in `MinhDuyDEV/pi-myself`). `docs/agents/issue-tracker.md` names the one in play, and the tool refuses the other op family (both, for GitLab or any backend it does not implement).
+Which issue-tracker implementation the `tracker` tool uses: the **local backend** (`.scratch/<feature>/issues/NN-<slug>.md` + `map.md`, the local-markdown convention) or the **GitHub backend** (`gh-*` ops over the `gh` CLI, issues in the current GitHub repository). `docs/agents/issue-tracker.md` names the one in play, and the tool refuses the other op family (both, for GitLab or any backend it does not implement).
 _Avoid_: "mode", "driver"
 
 **Prompt**:
@@ -43,7 +43,7 @@ A child's `blocked` result arguing, with evidence and the smallest alternative, 
 _Avoid_: "pushback", "objection" (they name a tone; a challenge names an evidence bar)
 
 **Model tier**:
-One of three groups of task roles defined by what they may do: **read** (`explore`, `scout`) never changes code, **reason** (`general`, `designer`, `ultra-verifier`) changes or designs, **review** (`reviewer`, `ultra-scout`) judges and never writes (ADR 0006). A tier may mix models, each picked per role (ADR 0009). A **model family** is the leading letters of a model name's last segment (`deepseek` in `vector/oc/deepseek-v4.1-flash`); the `reviewer`'s must differ from every reason-tier role's, so the merge gate does not share its author's blind spots.
+One of three groups of task roles defined by what they may do: **read** (`explore`, `scout`) never changes code, **reason** (`general`, `designer`, `ultra-verifier`) changes or designs, **review** (`reviewer`, `ultra-scout`) judges and never writes (ADR 0006). Roles inherit the active Pi session model unless the project pins a role in `.pi/agents/`. A distinct reviewer model family can add independent coverage when one is available.
 _Avoid_: "tier" alone (see Flagged ambiguities)
 
 **Stack companion**:

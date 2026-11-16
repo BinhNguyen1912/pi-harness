@@ -1,7 +1,5 @@
 ---
 description: PROACTIVE — Bounded multi-step implementation or mixed research-and-fix within the scope the prompt sets, including one spec ticket inside a worktree the parent created, landing a branch, or notes-only exploration; not repository-only mapping or docs-only research.
-model: vector/oc/deepseek-v4.1-flash
-thinking: high
 proactive: true
 skills: tdd, verification-before-completion
 disallowed_tools: memory_write, memory_delete, ask_user

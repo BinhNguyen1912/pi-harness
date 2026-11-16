@@ -9,10 +9,8 @@
  * the workflow policy is injected by the `policy` extension (ADR 0003). Older
  * runs copied that policy into `.pi/APPEND_SYSTEM.md`; this script removes such
  * a copy (an edited one is kept as APPEND_SYSTEM.md.local) and never touches a
- * repository's own APPEND_SYSTEM.md. Of settings.json a run writes only the
- * session's default model (`defaultProvider`, `defaultModel`,
- * `defaultThinkingLevel`, from the package's own settings.json; ADR 0011), every
- * other key left as it is. Outside .pi/, a run may add to .gitignore: a
+ * repository's own APPEND_SYSTEM.md. A run leaves project settings.json and
+ * its model selection unchanged. Outside .pi/, a run may add to .gitignore: a
  * consuming repository ignores its own .pi/ wholesale (ADR 0008), and the line
  * is appended once, never edited.
  *
@@ -27,11 +25,11 @@
  * A rerun is an UPDATE, not a merge. The package owns each role file — the
  * roster, the body, and every frontmatter line that shapes what a child may do
  * (tools, skills, disallowed_tools, readonly, proactive) — so a harness fix
- * lands without anyone re-reading a diff. `model` and `thinking` are the
- * package's too (ADR 0011): a rerun writes its values back and names a project
- * value it replaced, without a backup. Two things survive deliberately:
+ * lands without anyone re-reading a diff. `model` and `thinking` are
+ * project-owned in this fork (ADR 0012): a rerun keeps a project's chosen
+ * values. These fields survive deliberately:
  *
- *   - the project-owned field (`max_turns`) keeps the project's value when the
+ *   - project-owned fields (`model`, `thinking`, `max_turns`) keep the project's value when the
  *     project chose it, i.e. when it differs from what the package shipped last
  *     time; a value the project never touched follows the package;
  *   - a copy the project changed in any other line is saved beside itself as
@@ -67,18 +65,13 @@ const CHECK = argv.includes("--check");
 const targetRoot = resolve(argv.find((arg) => arg !== "--check") ?? process.cwd());
 const targetPi = join(targetRoot, ".pi");
 
-/** Frontmatter the package owns outright: a rerun always writes its value and names a project value it replaced (ADR 0011). */
-export const PACKAGE_OWNED_FIELDS = Object.freeze(["model", "thinking"]);
-/** Frontmatter a project owns per role (ADR 0005); every other line comes from the package. */
-export const PROJECT_OWNED_FIELDS = Object.freeze(["max_turns"]);
+/** Frontmatter a project owns per role; the package never chooses a model for it. */
+export const PROJECT_OWNED_FIELDS = Object.freeze(["model", "thinking", "max_turns"]);
 /**
  * Lines an edit is not measured on, so a changed value in one never earns a
  * backup. Fixed at these three: baselines already recorded hash without them.
  */
-const UNHASHED_FIELDS = Object.freeze([...PACKAGE_OWNED_FIELDS, ...PROJECT_OWNED_FIELDS]);
-
-/** The package's settings.json keys a run writes into the project's: the session's default model (ADR 0011). */
-export const DEFAULT_MODEL_KEYS = Object.freeze(["defaultProvider", "defaultModel", "defaultThinkingLevel"]);
+const UNHASHED_FIELDS = PROJECT_OWNED_FIELDS;
 
 /**
  * ADR 0008: a consuming repository's `.pi/` is local state — the declaration,
@@ -285,12 +278,7 @@ function syncAgent(sourcePath, target, rel) {
 	const kept = Object.entries(choices)
 		.filter(([field, value]) => value !== frontmatterField(source, field))
 		.map(([field, value]) => `kept your ${field}: ${value}; the package ships ${frontmatterField(source, field) ?? "none"}`);
-	// A package-owned value the project chose is overwritten, never silently.
-	const overridden = existing === undefined ? {} : projectChoices(existing, previous, PACKAGE_OWNED_FIELDS);
-	const replaced = Object.entries(overridden)
-		.filter(([field, value]) => value !== frontmatterField(source, field))
-		.map(([field, value]) => `replaced your ${field}: ${value}`);
-	const withKept = (note) => [note, ...kept, ...replaced].filter(Boolean).join("; ") || undefined;
+	const withKept = (note) => [note, ...kept].filter(Boolean).join("; ") || undefined;
 	if (!link && existing === content) return ["unchanged", withKept(undefined)];
 	if (link) {
 		// never write through a link: keep the project's link, put a file in its place
@@ -312,22 +300,6 @@ function freeBackupPath(path, text) {
 		candidate = `${path}.local.${n}`;
 	}
 	return candidate;
-}
-
-/** A settings file parsed as pi parses it: a leading UTF-8 BOM is stripped first (settings-manager.js). Throws like JSON.parse. */
-function readSettings(path) {
-	return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
-}
-
-/** The package's own default-model keys that hold a string; none when its settings.json is missing or unreadable. */
-function packageDefaultModel() {
-	let settings;
-	try {
-		settings = readSettings(join(packagePi, "settings.json"));
-	} catch {
-		return {};
-	}
-	return Object.fromEntries(DEFAULT_MODEL_KEYS.filter((key) => typeof settings?.[key] === "string").map((key) => [key, settings[key]]));
 }
 
 /** A dangling symlink fails existsSync; lstat still sees it. */
@@ -417,48 +389,6 @@ if (!sameRoot(targetRoot, packageRoot)) {
 		const prefix = existing === "" ? "" : existing.endsWith("\n") ? `${existing}\n` : `${existing}\n\n`;
 		fsWrite.write(target, `${prefix}${GITIGNORE_MARKER}\n${GITIGNORE_LINE}\n`);
 		record([existing === "" ? "created" : "updated", "pi state (.pi/) is local, not source"], rel);
-	}
-}
-
-// 4b. the session's default model (ADR 0011): the package's default-model keys
-// are written into the project's settings.json and every other key is left as it
-// is; a value the project set is replaced and named. A file that is not a JSON
-// object is never rewritten, and a symlinked one never written through. The
-// checkout is exempt: there settings.json is the package's own.
-if (!sameRoot(targetRoot, packageRoot)) {
-	const rel = "settings.json";
-	const target = join(targetPi, rel);
-	const defaults = packageDefaultModel();
-	const label = `default model ${[defaults.defaultProvider, defaults.defaultModel].filter(Boolean).join("/")}${
-		defaults.defaultThinkingLevel ? `, thinking ${defaults.defaultThinkingLevel}` : ""
-	}`;
-	const byHand = `set ${DEFAULT_MODEL_KEYS.join(", ")} by hand`;
-	if (Object.keys(defaults).length === 0) {
-		// the package sets no default model: nothing to write
-	} else if (!lstatExists(target)) {
-		fsWrite.mkdir(targetPi);
-		fsWrite.write(target, `${JSON.stringify(defaults, null, "\t")}\n`);
-		record(["created", label], rel);
-	} else {
-		let settings;
-		try {
-			settings = readSettings(target);
-		} catch {
-			settings = undefined;
-		}
-		if (settings === null || typeof settings !== "object" || Array.isArray(settings)) {
-			record(["kept", `not a JSON object: ${byHand}`], rel);
-		} else {
-			const changed = Object.keys(defaults).filter((key) => settings[key] !== defaults[key]);
-			if (changed.length > 0 && lstatSync(target).isSymbolicLink()) {
-				record(["kept", `a symlink: ${byHand} in the file it points to`], rel);
-			} else if (changed.length > 0) {
-				fsWrite.write(target, `${JSON.stringify({ ...settings, ...defaults }, null, "\t")}\n`);
-				const shown = (value) => (typeof value === "string" ? value : JSON.stringify(value));
-				const replaced = changed.filter((key) => settings[key] !== undefined).map((key) => `replaced your ${key}: ${shown(settings[key])}`);
-				record(["updated", [label, ...replaced].join("; ")], rel);
-			}
-		}
 	}
 }
 
@@ -595,7 +525,7 @@ if (!sameRoot(targetRoot, packageRoot)) {
 if (!sameRoot(targetRoot, packageRoot)) {
 	const files = Object.fromEntries(Object.entries(shippedNow).sort(([a], [b]) => a.localeCompare(b)));
 	const note =
-		"Written by /setup-pi-myself: per role, the sha256 of the file pi-myself shipped (model, thinking and max_turns lines removed) and the values it shipped for those fields. It tells a project edit apart from the package's own previous version (only an edit is backed up as <name>.local) and a project's own value apart from the package's default (a max_turns the project chose is kept; a model or thinking it chose is replaced and named). Local state, never committed: .pi/ is gitignored in a consuming repository (ADR 0008).";
+		"Written by /setup-pi-myself: per role, the sha256 of the file pi-myself shipped (model, thinking and max_turns lines removed) and the values it shipped for those fields. It tells a project edit apart from the package's own previous version (only an edit is backed up as <name>.local). Project model, thinking and max_turns choices are kept. Local state, never committed: .pi/ is gitignored in a consuming repository (ADR 0008).";
 	const body = `${JSON.stringify({ note, version: 2, files }, null, "\t")}\n`;
 	if (!existsSync(BASELINE) || readFileSync(BASELINE, "utf8") !== body) {
 		if (CHECK) console.log(`${LINE_PREFIX}updated  pi-myself-provisioned.json (the baseline a real run records)`);

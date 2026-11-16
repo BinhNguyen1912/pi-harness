@@ -1,7 +1,5 @@
 ---
 description: Static read-only bug-hunting scout for /skill:ultra-review; inspects the repository production surface and reports every bug candidate with evidence, never filtering speculative or low-confidence findings. Launched only by that skill.
-model: vector/oc/deepseek-v4.1-flash
-thinking: high
 readonly: true
 proactive: false
 disallowed_tools: memory_write, memory_delete, ask_user

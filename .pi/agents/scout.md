@@ -1,7 +1,5 @@
 ---
 description: PROACTIVE — Official docs, API/library behavior, external web evidence with citations, answered in conversation or written as one cited report file when the prompt names a path; not repository mapping or implementation.
-model: vector/cc/claude-haiku-5-5
-thinking: high
 proactive: true
 skills: research, source-driven-development
 disallowed_tools: memory_write, memory_delete, ask_user, tracker

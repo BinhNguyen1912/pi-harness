@@ -12,19 +12,19 @@ import { packageRoot, resolveRepoRoot } from "./lib/repo-root.js";
  * own `.pi/`: the task roles.
  *
  * No session-start check: rerunning the command IS the update path, and the
- * script owns the outcome. It refreshes the roles from the package — `model`
- * and `thinking` included, keeping only a `max_turns` the project chose — backs
+ * script owns the outcome. It refreshes the roles from the package while
+ * keeping project choices for `model`, `thinking`, and `max_turns`, and backs
  * up a copy the project changed in any other line as `.local` first, removes an
  * APPEND_SYSTEM.md an older run copied (the `policy` extension injects the
  * workflow now), and moves a glossary still named CONTEXT.md to GLOSSARY.md, the
  * only name the vendored skills read since upstream renamed it — the root file,
  * or a CONTEXT-MAP.md with each per-context file it lists. Of settings.json it
- * writes only the package's default model (ADR 0011).
+ * never writes project model settings.
  *
  * `/setup-pi-myself --check` is the read-only doctor instead: `runDoctor` (pure
  * over injected tool names, file reader, and spawn) reports `ok`/`warn` per
- * check — stale roles (the script's own `--check`), the reviewer's model family
- * against the reason tier (ADR 0009),
+ * check — stale roles (the script's own `--check`), optional reviewer model family
+ * against the reason tier (when roles are pinned),
  * companion tools, the `srcwalk` tool against the CLI it runs, tracker docs, a
  * glossary under a name the skills stopped reading, a globally installed
  * pi-myself (ADR 0007), and runtime state git does not ignore — each warning
@@ -143,16 +143,6 @@ function checkRoles(inputs: DoctorInputs): DoctorFinding {
 	if (!result.error && result.status === 0) {
 		const lines = output.split("\n");
 		const notes = lines.filter((line) => line.startsWith("note: "));
-		// a settings.json the script leaves alone writes nothing, so --check exits 0; the hand fix still has to reach the user (ADR 0011)
-		const settings = lines.filter((line) => /^\[check\] kept\s+settings\.json /.test(line));
-		if (settings.length > 0) {
-			return {
-				status: "warn",
-				check: "roles",
-				detail: ["the task roles match the package, but the default model could not be written:", ...settings, ...notes].join("\n"),
-				fix: "in .pi/settings.json set defaultProvider, defaultModel, defaultThinkingLevel to pi-myself's values by hand",
-			};
-		}
 		return { status: "ok", check: "roles", detail: ["the task roles match the package", ...notes].join("\n") };
 	}
 	if (!result.error && result.status === 1 && /^setup-project --check: /m.test(output)) {
@@ -181,12 +171,20 @@ function checkModelTiers(inputs: DoctorInputs): DoctorFinding {
 		});
 	const reason = withModels(REASON_TIER);
 	const reviewer = withModels([REVIEWER])[0];
+	if (reason.length === 0 && reviewer === undefined) {
+		return {
+			status: "ok",
+			check: "model tiers",
+			detail: "roles inherit the current Pi session model; independent review is still useful with one model",
+		};
+	}
 	if (reason.length === 0 || reviewer === undefined) {
 		return {
 			status: "warn",
 			check: "model tiers",
-			detail: `no model: line to compare in .pi/agents/ for ${reason.length === 0 ? "the reason tier" : REVIEWER}`,
-			fix: "run /setup-pi-myself",
+			detail:
+				"some roles pin a model while others inherit the Pi session model; compare their actual providers if independent model review matters",
+			fix: "remove role model pins or choose model families per role",
 		};
 	}
 	const shared = reason.filter((role) => role.family === reviewer.family);
@@ -432,7 +430,7 @@ export default function provisionExtension(pi: ExtensionAPI): void {
 
 	pi.registerCommand("setup-pi-myself", {
 		description:
-			"Provision or update this repository for pi-myself: refresh the task roles (model and thinking included; only a max_turns the project chose is kept; a copy changed in any other line is kept as .local), set the session's default model in .pi/settings.json (other keys kept), remove an APPEND_SYSTEM.md an older run copied (the workflow is injected now), and move a glossary still named CONTEXT.md to GLOSSARY.md, a multi-context CONTEXT-MAP.md and the files it lists included (git mv when tracked, never over an existing file). A project-added role is never touched. `--check`: a read-only doctor that reports what is stale or missing, with fixes, and writes nothing",
+			"Provision or update this repository for pi-myself: refresh the task roles while keeping project model, thinking and max_turns choices (a copy changed in any other line is kept as .local), leave .pi/settings.json unchanged, remove an APPEND_SYSTEM.md an older run copied (the workflow is injected now), and move a glossary still named CONTEXT.md to GLOSSARY.md, a multi-context CONTEXT-MAP.md and the files it lists included (git mv when tracked, never over an existing file). A project-added role is never touched. `--check`: a read-only doctor that reports what is stale or missing, with fixes, and writes nothing",
 		async handler(args, ctx) {
 			const root = resolveRepoRoot(ctx.cwd);
 			if (args.trim().split(/\s+/).includes("--check")) {

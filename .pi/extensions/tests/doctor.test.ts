@@ -112,18 +112,14 @@ test("a note from a current --check (a linked .pi/agents outside the repo) reach
 	assert.match(roles.detail, /resolves to \/shared\/roles, outside this repository/);
 });
 
-test("a settings.json a current --check could not update is a warning with the hand fix (ADR 0011)", () => {
-	const kept = "[check] kept     settings.json (not a JSON object: set defaultProvider, defaultModel, defaultThinkingLevel by hand)";
-	const spawn: DoctorInputs["spawn"] = (command, args) =>
-		command === "git"
-			? done(`${args.slice(1).join("\n")}\n`)
-			: done(
-					`${kept}\nsetup-project --check: 0 created, 0 updated, 7 unchanged, 1 kept in /repo/.pi \u2014 dry run, nothing written; current\n`,
-				);
-	const roles = finding(runDoctor(inputs({ spawn })), "roles");
-	assert.equal(roles.status, "warn");
-	assert.match(roles.detail, /settings\.json \(not a JSON object/);
-	assert.match(roles.fix ?? "", /defaultProvider, defaultModel, defaultThinkingLevel/);
+test("the doctor accepts roles that inherit the session model", () => {
+	const files = healthyFiles();
+	for (const name of ["explore", "scout", "general", "designer", "ultra-verifier", "reviewer", "ultra-scout"]) {
+		files[`${REPO}/.pi/agents/${name}.md`] = "---\ndescription: a role\n---\nbody\n";
+	}
+	const tiers = finding(runDoctor(inputs({ files })), "model tiers");
+	assert.equal(tiers.status, "ok");
+	assert.match(tiers.detail, /inherit the current Pi session model/);
 });
 
 test("an untrusted project is a warning: pi loads none of its .pi/ resources", () => {

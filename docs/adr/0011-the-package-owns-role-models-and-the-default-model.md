@@ -2,6 +2,8 @@
 
 Decided 2026-10-10 (user decision). Supersedes decisions 2 and 5 of ADR 0005: the project now owns only `max_turns`, and `settings.json` is no longer left untouched.
 
+**Fork note (2026-11-16):** Superseded by ADR 0012. This file records the source repository's earlier decision.
+
 ## Context
 
 Under ADR 0005 a consuming repository kept any `model` or `thinking` it had set on a role, and a rerun of `/setup-pi-myself` never touched `.pi/settings.json`. So a model change in pi-myself reached only the repositories that had never tuned a role. The session parent's model was not shipped at all: each repository kept whatever its own settings named.

@@ -60,7 +60,7 @@ Write markers as `TAG: note` in comments only; `tests/markers.test.ts` fails on 
 
 ### Issue tracker
 
-GitHub Issues on `MinhDuyDEV/pi-myself` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+GitHub Issues on the current `origin` repository via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

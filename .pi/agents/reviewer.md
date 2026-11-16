@@ -1,7 +1,5 @@
 ---
 description: PROACTIVE — Independent read-only audit after non-trivial edits: correctness, security, regressions, maintainability with path:line evidence and a merge verdict; also the Standards or Spec axis of code-review when that skill delegates; not before reviewable code exists.
-model: vector/cx/gpt-6.1-sol
-thinking: xhigh
 readonly: true
 proactive: true
 skills: verification-before-completion

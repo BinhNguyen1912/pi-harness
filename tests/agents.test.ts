@@ -81,16 +81,6 @@ type Tier = "read" | "reason" | "review";
 /** Roles that must not change state: readonly, plus scout, whose one write is a named report. */
 const NO_TRACKER = new Set(["explore", "scout", "reviewer", "designer", "ultra-scout"]);
 
-/** `provider/deepseek-v4-flash` → `deepseek`: the vendor family, the unit of shared blind spots. */
-function modelFamily(model: string): string {
-	return (
-		model
-			.split("/")
-			.pop()!
-			.match(/^[a-z]+/)?.[0] ?? model
-	);
-}
-
 function tierOf(name: string): Tier {
 	return READ_TIER.has(name) ? "read" : REVIEW_TIER.has(name) ? "review" : "reason";
 }
@@ -152,49 +142,16 @@ test("the roster is exactly the seven roles", () => {
 	assert.deepEqual(roles.map((r) => r.name).sort(), [...ROSTER].sort());
 });
 
-/** The models the role files themselves declare, per tier — no second copy to keep in step. */
-function tierModels(): Record<Tier, Set<string>> {
-	const models: Record<Tier, Set<string>> = { read: new Set(), reason: new Set(), review: new Set() };
-	for (const role of roles) models[tierOf(role.name)].add(frontmatter(role.raw).model ?? "(none)");
-	return models;
-}
-
-test("every role names a model and a one-line description; the reason tier splits deliberately", () => {
-	// A tier may run several models when the workloads inside it differ in cost
-	// and depth (read: flash-tier mapping vs medium research; reason: a strong
-	// designer/verifier model beside the implementation workhorse). The
-	// invariant that keeps model choice mechanical is the family-disjointness
-	// of review vs reason below, not "one model per tier".
-	for (const [tier, models] of Object.entries(tierModels())) {
-		assert.ok(models.size >= 1, `tier ${tier} declares at least one model`);
-	}
+test("roles inherit the Pi session model and keep their safety boundaries", () => {
 	for (const role of roles) {
 		const fm = frontmatter(role.raw);
 		const tier = tierOf(role.name);
-		assert.ok(fm.model, `${role.name}: model is set`);
+		assert.equal(fm.model, undefined, `${role.name}: model is selected by Pi`);
+		assert.equal(fm.thinking, undefined, `${role.name}: thinking level is selected by Pi`);
 		assert.ok(fm.description && fm.description.length <= 400, `${role.name}: description present and one line`);
 		assert.match(role.raw, new RegExp(`Tier: \\*\\*${tier}\\*\\*`), `${role.name}: body names its tier`);
 		assert.notEqual(fm.readonly, "false", `${role.name}: readonly: false is the default, drop it`);
-	}
-});
-
-test("the reviewer judges on a different model family than the reason tier writes", () => {
-	// Author and reviewer on one vendor share blind spots; the independent review
-	// the workflow requires is only independent if the family differs. The rule
-	// binds the `reviewer` — the role whose verdict gates a merge — not the whole
-	// review tier: ultra-scout's independence comes from running ten copies of
-	// one standard prompt and is downstream of the ultra-verifier's family anyway,
-	// so sharing a family with the reason tier is acceptable there (it also keeps
-	// the scout fleet off the Codex quota the main-session fallback uses). Read
-	// from the role files, so a swap in any one of them is caught.
-	const { reason } = tierModels();
-	const reasonFamilies = new Set([...reason].map(modelFamily));
-	const reviewer = roles.find((role) => role.name === "reviewer");
-	assert.ok(reviewer, "reviewer role exists");
-	const reviewerFamily = modelFamily(frontmatter(reviewer.raw).model ?? "(none)");
-	assert.ok(!reasonFamilies.has(reviewerFamily), `reviewer family (${reviewerFamily}) must differ from the reason tier's families`);
-	for (const role of roles) {
-		if (REVIEW_TIER.has(role.name)) assert.equal(frontmatter(role.raw).readonly, "true", `${role.name}: the review tier never writes`);
+		if (REVIEW_TIER.has(role.name)) assert.equal(fm.readonly, "true", `${role.name}: the review tier never writes`);
 	}
 });
 

@@ -74,92 +74,32 @@ test("setup-project provisions exactly the packaged agent files, and no APPEND_S
 	);
 });
 
-/** The package's default-model keys, read from its own settings.json. */
-function packageDefaults(): Record<string, string> {
-	const settings = JSON.parse(readFileSync(join(ROOT, ".pi", "settings.json"), "utf8"));
-	return {
-		defaultProvider: settings.defaultProvider,
-		defaultModel: settings.defaultModel,
-		defaultThinkingLevel: settings.defaultThinkingLevel,
-	};
-}
-
-test("setup-project writes the package's default model into a fresh project's settings.json, and nothing else from it (ADR 0011)", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	const dry = runCheck([target, "--check"]);
-	assert.match(dry.stdout, /^\[check\] created\s+settings\.json \(default model\b/m);
-	assert.ok(!existsSync(join(target, ".pi", "settings.json")), "--check writes nothing");
-	const output = runScript(target);
-	const settings = JSON.parse(readFileSync(join(target, ".pi", "settings.json"), "utf8"));
-	assert.deepEqual(settings, packageDefaults(), "only the default-model keys: the package's skills paths resolve against the package");
-	assert.match(output, /created\s+settings\.json \(default model\b/);
-});
-
-test("setup-project overwrites a project's default model and keeps every other setting (ADR 0011)", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	mkdirSync(join(target, ".pi"), { recursive: true });
-	const settingsPath = join(target, ".pi", "settings.json");
-	writeFileSync(
-		settingsPath,
-		`{\n  "theme": "dark",\n  "enableSkillCommands": false,\n  "defaultModel": "local/model",\n  "packages": ["git:github.com/MinhDuyDEV/pi-myself"]\n}\n`,
-	);
-	const output = runScript(target);
-	const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
-	assert.deepEqual(settings, {
-		theme: "dark",
-		enableSkillCommands: false,
-		packages: ["git:github.com/MinhDuyDEV/pi-myself"],
-		...packageDefaults(),
-	});
-	assert.match(output, /updated\s+settings\.json \(default model .*; replaced your defaultModel: local\/model\)/);
-	assert.ok(!existsSync(`${settingsPath}.local`), "no backup: the default model is the package's");
-
-	const written = readFileSync(settingsPath, "utf8");
-	assert.doesNotMatch(runScript(target), /settings\.json/, "a current file is not mentioned");
-	assert.equal(readFileSync(settingsPath, "utf8"), written, "and not rewritten");
-});
-
-test("setup-project never rewrites a settings.json it cannot parse", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	mkdirSync(join(target, ".pi"), { recursive: true });
-	const settingsPath = join(target, ".pi", "settings.json");
-	const broken = `{ "theme": "dark", }\n`;
-	writeFileSync(settingsPath, broken);
-	const output = runScript(target);
-	assert.equal(readFileSync(settingsPath, "utf8"), broken);
-	assert.match(output, /kept\s+settings\.json \(not a JSON object: set defaultProvider, defaultModel, defaultThinkingLevel by hand\)/);
-});
-
-test("a settings.json with a UTF-8 BOM is read as pi reads it, on both sides", () => {
-	// pi 0.87.1 strips a leading BOM before JSON.parse (settings-manager.js)
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	mkdirSync(join(target, ".pi"), { recursive: true });
-	const settingsPath = join(target, ".pi", "settings.json");
-	writeFileSync(settingsPath, `\uFEFF{"theme": "dark", "defaultModel": "local/model"}\n`);
-	runScript(target);
-	assert.deepEqual(JSON.parse(readFileSync(settingsPath, "utf8")), { theme: "dark", ...packageDefaults() });
-
-	const pkg = fakePackage();
-	writeFileSync(join(pkg.root, ".pi", "settings.json"), `\uFEFF${readFileSync(join(ROOT, ".pi", "settings.json"), "utf8")}`);
+test("setup-project does not create or edit project model settings", () => {
 	const fresh = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	runScript(fresh, undefined, pkg.script);
-	assert.deepEqual(JSON.parse(readFileSync(join(fresh, ".pi", "settings.json"), "utf8")), packageDefaults());
-});
+	const dry = runCheck([fresh, "--check"]);
+	assert.doesNotMatch(dry.stdout, /settings\.json/);
+	runScript(fresh);
+	assert.ok(!existsSync(join(fresh, ".pi", "settings.json")));
 
-test("setup-project never writes a default model through a symlinked settings.json", () => {
 	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
 	mkdirSync(join(target, ".pi"), { recursive: true });
+	const path = join(target, ".pi", "settings.json");
+	for (const content of [
+		'{"defaultProvider":"ollama","defaultModel":"deepseek","theme":"dark"}\n',
+		'{ "theme": "dark", }\n',
+		'\uFEFF{"defaultModel":"local/model"}\n',
+	]) {
+		writeFileSync(path, content);
+		assert.doesNotMatch(runScript(target), /settings\.json/);
+		assert.equal(readFileSync(path, "utf8"), content);
+	}
 	const shared = join(mkdtempSync(join(tmpdir(), "pi-myself-shared-")), "settings.json");
-	const original = `{"defaultModel": "local/model"}\n`;
-	writeFileSync(shared, original);
-	symlinkSync(shared, join(target, ".pi", "settings.json"));
-	const output = runScript(target);
-	assert.equal(readFileSync(shared, "utf8"), original, "the linked file is untouched");
-	assert.ok(lstatSync(join(target, ".pi", "settings.json")).isSymbolicLink(), "and the link stays");
-	assert.match(
-		output,
-		/kept\s+settings\.json \(a symlink: set defaultProvider, defaultModel, defaultThinkingLevel by hand in the file it points to\)/,
-	);
+	writeFileSync(shared, '{"defaultModel":"shared/model"}\n');
+	rmSync(path);
+	symlinkSync(shared, path);
+	runScript(target);
+	assert.ok(lstatSync(path).isSymbolicLink());
+	assert.equal(readFileSync(shared, "utf8"), '{"defaultModel":"shared/model"}\n');
 });
 
 test("setup-project reports the pi-workspace-memory slug and warns when that slug already has records", () => {
@@ -198,7 +138,7 @@ test("setup-project reports the pi-workspace-memory slug and warns when that slu
 	assert.match(runScript(target, home), /\/new-memory\/projects\/my-app /, "the current key wins over the legacy key");
 });
 
-test("setup-project is idempotent and a rerun puts back the package's model and thinking without a backup (ADR 0011)", () => {
+test("setup-project is idempotent and preserves per-project model and thinking choices", () => {
 	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
 	runScript(target);
 	const baseline = JSON.parse(readFileSync(join(target, ".pi", "pi-myself-provisioned.json"), "utf8"));
@@ -208,18 +148,14 @@ test("setup-project is idempotent and a rerun puts back the package's model and 
 			.map((name) => `agents/${name}`)
 			.sort(),
 	);
-	assert.match(runScript(target), /\b0 created, 0 updated, \d+ unchanged\b/, "re-run must be a no-op");
-
-	// the package owns model and thinking: a rerun writes its values back, names
-	// what it replaced, and a changed value alone is not an edit to back up
+	assert.match(runScript(target), /\b0 created, 0 updated, \d+ unchanged\b/);
 	const reviewer = join(target, ".pi", "agents", "reviewer.md");
-	const shipped = readFileSync(join(ROOT, ".pi", "agents", "reviewer.md"), "utf8");
-	writeFileSync(reviewer, shipped.replace(/^model: .*$/m, "model: local/reviewer").replace(/^thinking: .*$/m, "thinking: low"));
-	const output = runScript(target);
-	assert.match(output, /updated\s+agents\/reviewer\.md \(replaced your model: local\/reviewer; replaced your thinking: low\)/);
-	assert.equal(readFileSync(reviewer, "utf8"), shipped, "the package's model and thinking are back");
-	assert.ok(!existsSync(`${reviewer}.local`), "a replaced model or thinking is not an edit to back up");
-	assert.match(runScript(target), /\b0 created, 0 updated, \d+ unchanged\b/, "and the next run is a no-op");
+	addField(reviewer, "model", "ollama/deepseek");
+	addField(reviewer, "thinking", "low");
+	const choice = readFileSync(reviewer, "utf8");
+	assert.match(runScript(target), /kept your model: ollama\/deepseek/);
+	assert.equal(readFileSync(reviewer, "utf8"), choice);
+	assert.ok(!existsSync(`${reviewer}.local`));
 });
 
 /** What older runs copied into a project: the workflow policy, whose opening line is the stale-copy marker. */
@@ -317,11 +253,12 @@ test("setup-project backs up a differing copy when there is no baseline to compa
 	assert.ok(readFileSync(`${probe}.local`, "utf8").includes("project rule"), "nothing is dropped silently");
 	assert.ok(existsSync(join(target, ".pi", "pi-myself-provisioned.json")), "the run records a baseline");
 
-	// a copy that differs only in its model is not a difference worth a backup
+	// A model choice is project-owned even with a missing baseline.
 	rmSync(join(target, ".pi", "pi-myself-provisioned.json"));
 	rmSync(`${probe}.local`);
-	writeFileSync(probe, readFileSync(probe, "utf8").replace(/^model: .*$/m, "model: local/reviewer"));
-	assert.match(runScript(target), /updated\s+agents\/reviewer\.md \(replaced your model: local\/reviewer\)/);
+	addField(probe, "model", "local/reviewer");
+	assert.match(runScript(target), /kept your model: local\/reviewer/);
+	assert.match(readFileSync(probe, "utf8"), /^model: local\/reviewer$/m);
 	assert.ok(!existsSync(`${probe}.local`));
 });
 
@@ -378,26 +315,18 @@ function setField(path: string, field: string, value: string): void {
 	writeFileSync(path, text.replace(new RegExp(`^${field}: .*$`, "m"), `${field}: ${value}`));
 }
 
-test("a package model change reaches every repo, one that set its own model included, without a backup (ADR 0011)", () => {
+test("a package role update keeps a project's model choice", () => {
 	const pkg = fakePackage();
 	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
-	setField(join(agents, "reviewer.md"), "model", "local/reviewer");
-
-	for (const name of ["explore.md", "reviewer.md"]) {
-		setField(join(pkg.root, ".pi", "agents", name), "model", "vendor/new-model");
-		appendFileSync(join(pkg.root, ".pi", "agents", name), "\nupstream change\n");
-	}
+	addField(join(agents, "reviewer.md"), "model", "local/reviewer");
+	appendFileSync(join(pkg.root, ".pi", "agents", "reviewer.md"), "\nupstream change\n");
 	const upgraded = runScript(target, undefined, pkg.script);
-
-	const explore = readFileSync(join(agents, "explore.md"), "utf8");
-	assert.match(explore, /^model: vendor\/new-model$/m, "a value the project never changed follows the package");
 	const reviewer = readFileSync(join(agents, "reviewer.md"), "utf8");
-	assert.match(reviewer, /^model: vendor\/new-model$/m, "the project's own model is replaced too");
-	assert.ok(reviewer.includes("upstream change"), "the body update lands");
-	assert.match(upgraded, /agents\/reviewer\.md \(replaced your model: local\/reviewer\)/);
-	assert.doesNotMatch(upgraded, /\.local/, "a replaced model never costs a backup, even across a package update");
+	assert.match(reviewer, /^model: local\/reviewer$/m);
+	assert.match(reviewer, /upstream change/);
+	assert.match(upgraded, /kept your model: local\/reviewer/);
 	assert.ok(!existsSync(join(agents, "reviewer.md.local")));
 });
 
@@ -426,27 +355,21 @@ test("a max_turns the package stops shipping leaves a repo that never chose one;
 	assert.ok(!existsSync(join(agents, "reviewer.md.local")), "a project-owned field never costs a backup");
 });
 
-test("a baseline written by an older version (bare hashes) migrates without losing the package's model change", () => {
+test("a baseline written by an older version keeps a project model override", () => {
 	const pkg = fakePackage();
 	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
-	// the old format: file → sha256 of the package file as shipped
 	const files = Object.fromEntries(
 		packagedAgentFiles().map((name) => [`agents/${name}`, sha(readFileSync(join(pkg.root, ".pi", "agents", name), "utf8"))]),
 	);
 	writeFileSync(join(target, ".pi", "pi-myself-provisioned.json"), JSON.stringify({ files }));
-	setField(join(agents, "reviewer.md"), "model", "local/reviewer"); // a project choice the old baseline cannot see
-
-	setField(join(pkg.root, ".pi", "agents", "explore.md"), "model", "vendor/new-model");
-	setField(join(pkg.root, ".pi", "agents", "reviewer.md"), "model", "vendor/new-model");
+	addField(join(agents, "reviewer.md"), "model", "local/reviewer");
+	appendFileSync(join(pkg.root, ".pi", "agents", "reviewer.md"), "\nupstream change\n");
 	runScript(target, undefined, pkg.script);
-
-	assert.match(readFileSync(join(agents, "explore.md"), "utf8"), /^model: vendor\/new-model$/m, "an untouched copy takes the new model");
-	assert.match(readFileSync(join(agents, "reviewer.md"), "utf8"), /^model: vendor\/new-model$/m, "a changed copy takes it too");
-	assert.ok(!existsSync(join(agents, "reviewer.md.local")), "a changed model alone earns no backup");
+	assert.match(readFileSync(join(agents, "reviewer.md"), "utf8"), /^model: local\/reviewer$/m);
 	const baseline = JSON.parse(readFileSync(join(target, ".pi", "pi-myself-provisioned.json"), "utf8"));
-	assert.equal(typeof baseline.files["agents/explore.md"], "object", "the baseline is rewritten in the current format");
+	assert.equal(typeof baseline.files["agents/explore.md"], "object");
 });
 
 test("a role the package stops shipping is removed when untouched and kept, reported, when the project edited it", () => {

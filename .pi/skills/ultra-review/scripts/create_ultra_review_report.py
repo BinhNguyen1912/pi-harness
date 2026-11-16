@@ -196,7 +196,8 @@ def main() -> int:
 
     if not args.dry_run:
         report_dir.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(content, encoding="utf-8", newline="\n")
+    with report_path.open("w", encoding="utf-8", newline="\n") as report_file:
+        report_file.write(content)
 
     print(json.dumps(metadata, indent=2))
     print("---BEGIN ULTRA REVIEW TEMPLATE---")

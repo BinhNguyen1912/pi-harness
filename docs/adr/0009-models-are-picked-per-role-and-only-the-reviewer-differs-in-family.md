@@ -2,6 +2,8 @@
 
 Decided 2026-09-27 (user decision). Supersedes decisions 2 and 3 of ADR 0006 ("one model per tier"; "the review tier runs a different model family from the reason tier"). Its decision 1 — three tiers, the review tier always `readonly: true` — stands.
 
+**Fork note (2026-11-16):** ADR 0012 supersedes the model selection and family requirements below. The role safety tiers remain.
+
 ## Context
 
 ADR 0006 made choosing a model mechanical: one model per tier, and the whole review tier on a family the reason tier does not use. Once the roles moved to a provider with a wider model menu, both rules cost more than they bought:

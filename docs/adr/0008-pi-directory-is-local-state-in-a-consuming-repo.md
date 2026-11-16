@@ -21,7 +21,7 @@ The two `.pi/` directories are not the same thing, and the rule has to say so: i
 2. **`/setup-pi-myself` ensures the line**, idempotently: it appends a marked block only when no existing line already covers `.pi/`, and `--check` reports it without writing.
 3. **The baseline is per machine.** It is created by the first run in a clone and never travels; the update semantics of ADR 0005 §3 are unchanged by this.
 4. **The package checkout is exempt.** Its `.pi/` is source, so the doctor's gitignore check keeps naming the individual runtime paths there and offers `.pi/*` only in a consuming repository.
-5. **A clone does not declare the harness.** Each developer and each CI job runs `pi install git:github.com/MinhDuyDEV/pi-myself -l` once, then `/setup-pi-myself` and `/reload`.
+5. **A clone does not declare the harness.** Each developer and each CI job runs `pi install git:github.com/BinhNguyen1912/pi-myself -l` once, then `/setup-pi-myself` and `/reload`.
 
 ## Consequences
 

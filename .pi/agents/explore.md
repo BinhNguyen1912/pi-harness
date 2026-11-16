@@ -1,7 +1,5 @@
 ---
 description: PROACTIVE — Read-only repository mapping with path:line evidence when the repo is unfamiliar or the question spans modules; not external docs, implementation, or a single known path.
-model: vector/cc/claude-haiku-5-5
-thinking: medium
 readonly: true
 proactive: true
 disallowed_tools: memory_write, memory_delete, ask_user
