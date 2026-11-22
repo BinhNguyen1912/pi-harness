@@ -49,7 +49,7 @@ pi-harness/
 │   ├── policy/          # WORKFLOW.md (parent) · CHILD-CONTRACT.md (roles)
 │   ├── extensions/      # policy, guard, host-commands, skill-tool/, tracker/,
 │   │                    #   dcp/ (recall), continue-after-compaction, smart-zone,
-│   │                    #   provision; lib/ = shared helpers
+│   │                    #   provision, hive/ (Hive AI task API); lib/ = shared helpers
 │   ├── skills/          # local skills (listed in PROJECT.md)
 │   ├── agents/          # seven task roles in three tiers
 │   ├── prompts/         # /verify /init
