@@ -16,7 +16,7 @@ const BEGIN = /^<!-- child-contract:begin[^\n]*-->$/m;
 const END = "<!-- child-contract:end -->";
 
 function fakePackage(contract: string, roles: Record<string, string>): string {
-	const root = mkdtempSync(join(tmpdir(), "pi-myself-agents-"));
+	const root = mkdtempSync(join(tmpdir(), "pi-harness-agents-"));
 	mkdirSync(join(root, "scripts"));
 	mkdirSync(join(root, ".pi", "policy"), { recursive: true });
 	mkdirSync(join(root, ".pi", "agents"), { recursive: true });

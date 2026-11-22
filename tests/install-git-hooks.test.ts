@@ -39,7 +39,7 @@ function git(root: string, ...args: string[]): string {
 
 /** A fresh repository; `biome: true` fakes an installed Biome so the default command is allowed. */
 function makeRoot({ biome = false } = {}): string {
-	const root = mkdtempSync(join(tmpdir(), "pi-myself-hooks-"));
+	const root = mkdtempSync(join(tmpdir(), "pi-harness-hooks-"));
 	git(root, "init", "-q");
 	if (biome) {
 		mkdirSync(join(root, "node_modules", ".bin"), { recursive: true });
@@ -71,7 +71,7 @@ test("installs a pre-commit hook that runs the staged check", () => {
 	assert.equal(result.status, 0, result.stderr);
 	const content = hook(root, "pre-commit");
 	assert.match(content, /biome check --staged/, "with Biome installed, the default needs no npm script in the host repo");
-	assert.match(content, /pi-myself:/, "the marker is what makes the hook ours to refresh");
+	assert.match(content, /pi-harness:/, "the marker is what makes the hook ours to refresh");
 	assert.equal(run(root, "--check").status, 0, "an installed hook passes --check");
 });
 
@@ -124,7 +124,7 @@ test("a hook the project wrote keeps running: it moves beside ours and ours runs
 
 test("a symlinked hook is moved as a link, never written through", () => {
 	const root = makeRoot();
-	const shared = join(mkdtempSync(join(tmpdir(), "pi-myself-shared-")), "pre-commit");
+	const shared = join(mkdtempSync(join(tmpdir(), "pi-harness-shared-")), "pre-commit");
 	writeFileSync(shared, "#!/bin/sh\nexit 0\n");
 	chmodSync(shared, 0o755);
 	symlinkSync(shared, hookPath(root, "pre-commit"));
@@ -151,9 +151,9 @@ test("refuses core.hooksPath inside the work tree: those hooks are the repositor
 test("refuses a core.hooksPath outside the repository's git directory: those hooks are shared", () => {
 	// A machine-wide hooks folder (git-secrets, gitleaks setups) runs in every
 	// repository; writing this repo's command there breaks commits everywhere.
-	const shared = mkdtempSync(join(tmpdir(), "pi-myself-global-hooks-"));
+	const shared = mkdtempSync(join(tmpdir(), "pi-harness-global-hooks-"));
 	writeFileSync(join(shared, "pre-commit"), "#!/bin/sh\nexit 0\n");
-	const globalConfig = join(mkdtempSync(join(tmpdir(), "pi-myself-gitconfig-")), "config");
+	const globalConfig = join(mkdtempSync(join(tmpdir(), "pi-harness-gitconfig-")), "config");
 	writeFileSync(globalConfig, `[core]\n\thooksPath = ${shared}\n`);
 	const root = makeRoot();
 	const env = { ...GIT_ENV, GIT_CONFIG_GLOBAL: globalConfig };
@@ -186,7 +186,7 @@ test("a second foreign hook never overwrites the first one kept as .local", () =
 });
 
 test("a symlinked .git/hooks leading out of the repository is refused without blaming core.hooksPath", () => {
-	const shared = mkdtempSync(join(tmpdir(), "pi-myself-linked-hooks-"));
+	const shared = mkdtempSync(join(tmpdir(), "pi-harness-linked-hooks-"));
 	const root = makeRoot();
 	rmSync(join(root, ".git", "hooks"), { recursive: true, force: true });
 	symlinkSync(shared, join(root, ".git", "hooks"));
@@ -209,7 +209,7 @@ test("a symlinked .git/hooks leading into the work tree is refused without blami
 	assert.deepEqual(readdirSync(join(root, ".githooks")), []);
 });
 
-test("a hook that links to a pi-myself hook is replaced by a file, never moved to .local (which would call itself)", () => {
+test("a hook that links to a pi-harness hook is replaced by a file, never moved to .local (which would call itself)", () => {
 	// The pre-check and the install used different rules for such a link: the
 	// pre-check let it through, the install then moved it onto the kept .local.
 	const root = makeRoot();
@@ -217,7 +217,7 @@ test("a hook that links to a pi-myself hook is replaced by a file, never moved t
 	chmodSync(hookPath(root, "pre-commit"), 0o755);
 	assert.equal(run(root, "--command", "true").status, 0, "the project hook is kept as pre-commit.local");
 	const installed = hook(root, "pre-commit");
-	const elsewhere = join(mkdtempSync(join(tmpdir(), "pi-myself-hook-copy-")), "pre-commit");
+	const elsewhere = join(mkdtempSync(join(tmpdir(), "pi-harness-hook-copy-")), "pre-commit");
 	writeFileSync(elsewhere, installed);
 	chmodSync(elsewhere, 0o755);
 	rmSync(hookPath(root, "pre-commit"));
@@ -232,7 +232,7 @@ test("a hook that links to a pi-myself hook is replaced by a file, never moved t
 });
 
 test("refuses outside a git work tree instead of inventing .git/hooks", () => {
-	const plain = mkdtempSync(join(tmpdir(), "pi-myself-no-git-"));
+	const plain = mkdtempSync(join(tmpdir(), "pi-harness-no-git-"));
 	const result = run(plain, "--command", "true");
 	assert.equal(result.status, 1);
 	assert.match(result.stderr, /not inside a git work tree/);

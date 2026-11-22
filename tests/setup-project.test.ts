@@ -20,7 +20,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 
-// The provisioning script is the only path by which an installed pi-myself
+// The provisioning script is the only path by which an installed pi-harness
 // package makes its task roles visible in a consuming repo — pi-task loads them
 // from the project config dir only. The workflow rules are no longer copied:
 // the policy extension injects them, and a copy an older run provisioned is
@@ -37,7 +37,7 @@ function runScript(target: string, home?: string, script = SCRIPT): string {
 
 /** A copy of the package's provisioned surface that a test can "upgrade"; the script treats its own parent as the package. */
 function fakePackage(): { root: string; script: string } {
-	const root = mkdtempSync(join(tmpdir(), "pi-myself-pkg-"));
+	const root = mkdtempSync(join(tmpdir(), "pi-harness-pkg-"));
 	mkdirSync(join(root, "scripts"));
 	copyFileSync(SCRIPT, join(root, "scripts", "setup-project.mjs"));
 	cpSync(join(ROOT, ".pi", "agents"), join(root, ".pi", "agents"), { recursive: true });
@@ -53,7 +53,7 @@ function packagedAgentFiles(): string[] {
 }
 
 test("setup-project provisions exactly the packaged agent files, and no APPEND_SYSTEM.md", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target);
 
 	const provisioned = readdirSync(join(target, ".pi", "agents"));
@@ -75,13 +75,13 @@ test("setup-project provisions exactly the packaged agent files, and no APPEND_S
 });
 
 test("setup-project does not create or edit project model settings", () => {
-	const fresh = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const fresh = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	const dry = runCheck([fresh, "--check"]);
 	assert.doesNotMatch(dry.stdout, /settings\.json/);
 	runScript(fresh);
 	assert.ok(!existsSync(join(fresh, ".pi", "settings.json")));
 
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	mkdirSync(join(target, ".pi"), { recursive: true });
 	const path = join(target, ".pi", "settings.json");
 	for (const content of [
@@ -93,7 +93,7 @@ test("setup-project does not create or edit project model settings", () => {
 		assert.doesNotMatch(runScript(target), /settings\.json/);
 		assert.equal(readFileSync(path, "utf8"), content);
 	}
-	const shared = join(mkdtempSync(join(tmpdir(), "pi-myself-shared-")), "settings.json");
+	const shared = join(mkdtempSync(join(tmpdir(), "pi-harness-shared-")), "settings.json");
 	writeFileSync(shared, '{"defaultModel":"shared/model"}\n');
 	rmSync(path);
 	symlinkSync(shared, path);
@@ -103,8 +103,8 @@ test("setup-project does not create or edit project model settings", () => {
 });
 
 test("setup-project reports the pi-workspace-memory slug and warns when that slug already has records", () => {
-	const home = mkdtempSync(join(tmpdir(), "pi-myself-home-"));
-	const target = join(mkdtempSync(join(tmpdir(), "pi-myself-project-")), "My App");
+	const home = mkdtempSync(join(tmpdir(), "pi-harness-home-"));
+	const target = join(mkdtempSync(join(tmpdir(), "pi-harness-project-")), "My App");
 	mkdirSync(target, { recursive: true });
 	const fresh = runScript(target, home);
 	assert.match(
@@ -120,7 +120,7 @@ test("setup-project reports the pi-workspace-memory slug and warns when that slu
 	assert.doesNotMatch(rerun, /warning: a memory directory/, "only a first run can tell a shared slug from the repo's own memory");
 
 	// a first run that finds records already there is the collision worth naming
-	const twin = join(mkdtempSync(join(tmpdir(), "pi-myself-project-")), "My App");
+	const twin = join(mkdtempSync(join(tmpdir(), "pi-harness-project-")), "My App");
 	mkdirSync(twin, { recursive: true });
 	assert.match(runScript(twin, home), /warning: a memory directory for this slug already exists/);
 
@@ -139,7 +139,7 @@ test("setup-project reports the pi-workspace-memory slug and warns when that slu
 });
 
 test("setup-project is idempotent and preserves per-project model and thinking choices", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target);
 	const baseline = JSON.parse(readFileSync(join(target, ".pi", "pi-myself-provisioned.json"), "utf8"));
 	assert.deepEqual(
@@ -165,7 +165,7 @@ const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
 /** A project an older setup-project provisioned: its APPEND_SYSTEM.md copy and, optionally, the baseline that recorded it. */
 function provisionedBefore(appendSystem: string, baseline?: string): string {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	mkdirSync(join(target, ".pi"), { recursive: true });
 	writeFileSync(join(target, ".pi", "APPEND_SYSTEM.md"), appendSystem);
 	if (baseline !== undefined) {
@@ -178,7 +178,7 @@ test("setup-project removes the workflow copy an older run provisioned, backing 
 	// untouched copy: removed outright, nothing to keep
 	const clean = provisionedBefore(OLD_POLICY, OLD_POLICY);
 	const append = join(clean, ".pi", "APPEND_SYSTEM.md");
-	assert.match(runScript(clean), /removed\s+APPEND_SYSTEM\.md \(the workflow policy is now injected by the pi-myself policy extension\)/);
+	assert.match(runScript(clean), /removed\s+APPEND_SYSTEM\.md \(the workflow policy is now injected by the pi-harness policy extension\)/);
 	assert.ok(!existsSync(append), "a stale copy would suppress the injected policy");
 	assert.ok(!existsSync(`${append}.local`), "an untouched copy holds nothing of the project's");
 	const baseline = JSON.parse(readFileSync(join(clean, ".pi", "pi-myself-provisioned.json"), "utf8"));
@@ -208,7 +208,7 @@ test("setup-project leaves a repository's own APPEND_SYSTEM.md alone", () => {
 
 test("setup-project takes a package update everywhere, backing up what the project changed", () => {
 	const pkg = fakePackage();
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
 
@@ -241,7 +241,7 @@ test("setup-project takes a package update everywhere, backing up what the proje
 test("setup-project backs up a differing copy when there is no baseline to compare against", () => {
 	// A repo that already had a same-named role before its first provisioning:
 	// nothing proves the difference is an old package version, so it is kept.
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target);
 	rmSync(join(target, ".pi", "pi-myself-provisioned.json"));
 	const probe = join(target, ".pi", "agents", "reviewer.md");
@@ -280,7 +280,7 @@ function runCheck(args: string[], script = SCRIPT): { status: number | null; std
 }
 
 test("setup-project --check reports what a run would do, writes nothing, and exits 1 until the project is current", () => {
-	const fresh = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const fresh = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	const first = runCheck([fresh, "--check"]);
 	assert.equal(first.status, 1, "an unprovisioned project is not current");
 	assert.match(first.stdout, /^\[check\] created\s+agents\/reviewer\.md$/m, "today's line, marked as a dry run");
@@ -317,7 +317,7 @@ function setField(path: string, field: string, value: string): void {
 
 test("a package role update keeps a project's model choice", () => {
 	const pkg = fakePackage();
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
 	addField(join(agents, "reviewer.md"), "model", "local/reviewer");
@@ -340,7 +340,7 @@ function addField(path: string, field: string, value: string): void {
 test("a max_turns the package stops shipping leaves a repo that never chose one; a repo's own survives (ADR 0010)", () => {
 	const pkg = fakePackage();
 	for (const name of ["explore.md", "reviewer.md"]) addField(join(pkg.root, ".pi", "agents", name), "max_turns", "50");
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
 	setField(join(agents, "reviewer.md"), "max_turns", "12");
@@ -357,7 +357,7 @@ test("a max_turns the package stops shipping leaves a repo that never chose one;
 
 test("a baseline written by an older version keeps a project model override", () => {
 	const pkg = fakePackage();
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
 	const files = Object.fromEntries(
@@ -374,7 +374,7 @@ test("a baseline written by an older version keeps a project model override", ()
 
 test("a role the package stops shipping is removed when untouched and kept, reported, when the project edited it", () => {
 	const pkg = fakePackage();
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const agents = join(target, ".pi", "agents");
 	appendFileSync(join(agents, "designer.md"), "\nproject rule\n");
@@ -382,9 +382,9 @@ test("a role the package stops shipping is removed when untouched and kept, repo
 	rmSync(join(pkg.root, ".pi", "agents", "explore.md"));
 
 	const output = runScript(target, undefined, pkg.script);
-	assert.match(output, /removed\s+agents\/explore\.md \(pi-myself no longer ships this role\)/);
+	assert.match(output, /removed\s+agents\/explore\.md \(pi-harness no longer ships this role\)/);
 	assert.ok(!existsSync(join(agents, "explore.md")), "an untouched copy of a dropped role goes");
-	assert.match(output, /kept\s+agents\/designer\.md \(pi-myself no longer ships this role; your edits make it the project's now\)/);
+	assert.match(output, /kept\s+agents\/designer\.md \(pi-harness no longer ships this role; your edits make it the project's now\)/);
 	assert.ok(readFileSync(join(agents, "designer.md"), "utf8").includes("project rule"));
 	const baseline = JSON.parse(readFileSync(join(target, ".pi", "pi-myself-provisioned.json"), "utf8"));
 	assert.ok(!("agents/designer.md" in baseline.files) && !("agents/explore.md" in baseline.files));
@@ -394,7 +394,7 @@ test("a role the package stops shipping is removed when untouched and kept, repo
 test("a project value for a field the package role lacks is inserted into the frontmatter, never lost", () => {
 	const pkg = fakePackage();
 	const role = join(pkg.root, ".pi", "agents", "scout.md");
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const copy = join(target, ".pi", "agents", "scout.md");
 	addField(copy, "max_turns", "12");
@@ -410,9 +410,9 @@ test("a project value for a field the package role lacks is inserted into the fr
 
 test("a symlinked role is replaced by a file and the link kept as .local; the shared target is never written", () => {
 	const pkg = fakePackage();
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
-	const shared = join(mkdtempSync(join(tmpdir(), "pi-myself-shared-")), "reviewer.md");
+	const shared = join(mkdtempSync(join(tmpdir(), "pi-harness-shared-")), "reviewer.md");
 	const copy = join(target, ".pi", "agents", "reviewer.md");
 	writeFileSync(shared, `${readFileSync(copy, "utf8")}\nshared rule\n`);
 	rmSync(copy);
@@ -440,12 +440,12 @@ test("a symlinked role is replaced by a file and the link kept as .local; the sh
 test("a symlinked .pi/agents folder is written into, and the run says it lies outside the repository", () => {
 	// A folder link is the project's chosen location (roles shared across repos,
 	// say): provisioning writes there, but never silently.
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	const shared = mkdtempSync(join(tmpdir(), "pi-myself-shared-agents-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
+	const shared = mkdtempSync(join(tmpdir(), "pi-harness-shared-agents-"));
 	mkdirSync(join(target, ".pi"), { recursive: true });
 	symlinkSync(shared, join(target, ".pi", "agents"));
 	const output = runScript(target);
-	assert.match(output, /note: \.pi\/agents resolves to .*pi-myself-shared-agents-.* outside this repository/);
+	assert.match(output, /note: \.pi\/agents resolves to .*pi-harness-shared-agents-.* outside this repository/);
 	assert.ok(existsSync(join(shared, "reviewer.md")), "the roles land in the linked folder");
 	assert.ok(lstatSync(join(target, ".pi", "agents")).isSymbolicLink(), "the folder link itself is left alone");
 });
@@ -467,7 +467,7 @@ test("a role's kept project values are reported when they differ from what the p
 	// cannot tell those from a choice, so every kept value that differs from the
 	// package's is named on each run instead of being kept silently.
 	const pkg = fakePackage();
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target, undefined, pkg.script);
 	const reviewer = join(target, ".pi", "agents", "reviewer.md");
 	addField(reviewer, "max_turns", "12");
@@ -480,20 +480,20 @@ test("a role's kept project values are reported when they differ from what the p
 test("a consuming repo ignores its whole .pi/ with one line; the package checkout is exempt", () => {
 	// ADR 0008: the declaration, the baseline, the roles and pi's runtime state are
 	// all local to the machine that installed the harness, so one line covers them.
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	runScript(target);
 	const ignore = readFileSync(join(target, ".gitignore"), "utf8");
 	assert.match(ignore, /^\.pi\/\*$/m, "one line covers declaration, baseline, roles and runtime state");
 	// The comment names what added the line and nothing else: the ADR it comes
 	// from lives in this package, not in the repository that reads the file.
-	assert.match(ignore, /^# pi-myself: /m, "the line is marked, so a reader knows what added it");
+	assert.match(ignore, /^# pi-harness: /m, "the line is marked, so a reader knows what added it");
 
 	// appended once, never edited or duplicated
 	assert.match(runScript(target), /\b0 created, 0 updated\b/, "a rerun adds nothing");
 	assert.equal(readFileSync(join(target, ".gitignore"), "utf8"), ignore);
 
 	// a repo that already ignores .pi/ another way keeps its own spelling
-	const settled = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const settled = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	writeFileSync(join(settled, ".gitignore"), "node_modules/\n.pi/\n");
 	runScript(settled);
 	assert.equal(readFileSync(join(settled, ".gitignore"), "utf8"), "node_modules/\n.pi/\n");
@@ -504,7 +504,7 @@ test("a consuming repo ignores its whole .pi/ with one line; the package checkou
 	assert.ok(!existsSync(join(pkg.root, ".gitignore")), "the checkout's .pi/ is source and must stay tracked");
 
 	// --check names the line and still writes nothing
-	const fresh = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const fresh = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	const check = runCheck([fresh, "--check"]);
 	assert.match(check.stdout, /^\[check\] created\s+\.gitignore \(/m, "the dry run names the ignore line");
 	assert.ok(!existsSync(join(fresh, ".gitignore")), "a check writes nothing");
@@ -518,7 +518,7 @@ const OLD_DOMAIN_DOC = "- **`CONTEXT.md`** at the repo root, or\n- **`CONTEXT-MA
 const NEW_DOMAIN_DOC = "- **`GLOSSARY.md`** at the repo root, or\n- **`GLOSSARY-MAP.md`** at the repo root if it exists\n";
 
 test("a glossary still named CONTEXT.md moves to GLOSSARY.md, and the domain doc's pointer follows", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	writeFileSync(join(target, "CONTEXT.md"), GLOSSARY_TEXT);
 	mkdirSync(join(target, "docs", "agents"), { recursive: true });
 	writeFileSync(join(target, "docs", "agents", "domain.md"), OLD_DOMAIN_DOC);
@@ -549,7 +549,7 @@ function gitIn(cwd: string): (...args: string[]) => string {
 }
 
 test("a tracked glossary moves with git mv, so the rename is staged and its history follows", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	const git = gitIn(target);
 	git("init", "-q");
 	writeFileSync(join(target, "CONTEXT.md"), GLOSSARY_TEXT);
@@ -566,7 +566,7 @@ test("a tracked glossary moves with git mv, so the rename is staged and its hist
 
 test("a move never overwrites: an existing GLOSSARY.md or GLOSSARY-MAP.md and a linked domain doc are kept and named", () => {
 	// both names present: which one is current is a judgement, so nothing is touched
-	const both = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const both = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	writeFileSync(join(both, "CONTEXT.md"), "old\n");
 	writeFileSync(join(both, "GLOSSARY.md"), "new\n");
 	assert.match(runScript(both), /^kept\s+CONTEXT\.md \(GLOSSARY\.md already exists/m);
@@ -575,7 +575,7 @@ test("a move never overwrites: an existing GLOSSARY.md or GLOSSARY-MAP.md and a 
 	assert.equal(runCheck([both, "--check"]).status, 0, "nothing a run would change, so the project is current");
 
 	// two maps present: the same judgement, so the old map and what only it lists stay put
-	const maps = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const maps = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	const oldMap = "- [Ordering](./ordering/CONTEXT.md)\n";
 	writeFileSync(join(maps, "CONTEXT-MAP.md"), oldMap);
 	writeFileSync(join(maps, "GLOSSARY-MAP.md"), "- [Billing](./billing/GLOSSARY.md)\n");
@@ -586,8 +586,8 @@ test("a move never overwrites: an existing GLOSSARY.md or GLOSSARY-MAP.md and a 
 	assert.ok(existsSync(join(maps, "ordering", "CONTEXT.md")), "a context only the unmoved map lists is not moved");
 
 	// a linked domain doc is the project's chosen location: never replaced by a file
-	const linked = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
-	const shared = join(mkdtempSync(join(tmpdir(), "pi-myself-shared-")), "domain.md");
+	const linked = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
+	const shared = join(mkdtempSync(join(tmpdir(), "pi-harness-shared-")), "domain.md");
 	writeFileSync(shared, OLD_DOMAIN_DOC);
 	mkdirSync(join(linked, "docs", "agents"), { recursive: true });
 	symlinkSync(shared, join(linked, "docs", "agents", "domain.md"));
@@ -602,7 +602,7 @@ test("a multi-context map moves with the per-context glossaries it lists, and it
 	// file it lists, and the links between them move together. Only what the map
 	// lists is a glossary: a CONTEXT.md nobody listed (a vendored package's, say)
 	// stays where it is.
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-project-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-project-"));
 	const git = gitIn(target);
 	git("init", "-q");
 	const map = (name: string) =>
@@ -650,7 +650,7 @@ test("a multi-context map moves with the per-context glossaries it lists, and it
 });
 
 test("the map moves even when a context cannot: what stays is kept, named, and still linked, and a later run finishes it", () => {
-	const parent = mkdtempSync(join(tmpdir(), "pi-myself-parent-"));
+	const parent = mkdtempSync(join(tmpdir(), "pi-harness-parent-"));
 	const target = join(parent, "repo");
 	const links = (ordering: string, done: string, billing: string) =>
 		[

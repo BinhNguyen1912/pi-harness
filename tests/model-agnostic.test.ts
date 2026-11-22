@@ -19,7 +19,7 @@ test("the package leaves model choice to the Pi session", () => {
 });
 
 test("setup preserves a project's model settings and role override", () => {
-	const target = mkdtempSync(join(tmpdir(), "pi-myself-model-"));
+	const target = mkdtempSync(join(tmpdir(), "pi-harness-model-"));
 	mkdirSync(join(target, ".pi", "agents"), { recursive: true });
 	const settingsPath = join(target, ".pi", "settings.json");
 	const settings = { defaultProvider: "ollama", defaultModel: "deepseek", defaultThinkingLevel: "medium", theme: "dark" };

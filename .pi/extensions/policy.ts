@@ -11,7 +11,7 @@ import { packageRoot } from "./lib/repo-root.js";
  *
  * Why not a copied `.pi/APPEND_SYSTEM.md` any more (ADR 0003): pi discovers
  * that file only in the project's own `.pi/`, so each consuming repo held a
- * copy that went stale between `/setup-pi-myself` runs, and a task child never
+ * copy that went stale between `/setup-pi-harness` runs, and a task child never
  * saw it anyway — pi-task's `--append-system-prompt` suppresses the discovered
  * file. Reading the package's own copy keeps every repo on the installed
  * version with nothing to provision.
@@ -22,7 +22,7 @@ import { packageRoot } from "./lib/repo-root.js";
  *   while an in-process child runs.
  * - A project whose `.pi/APPEND_SYSTEM.md` is an older provisioned copy of this
  *   policy (it carries `STALE_COPY_MARKER`) gets no second copy: the section
- *   is withheld and one notice says to run `/setup-pi-myself`, which migrates
+ *   is withheld and one notice says to run `/setup-pi-harness`, which migrates
  *   the copy away. A repository's own `APPEND_SYSTEM.md` is left to pi.
  */
 
@@ -30,21 +30,21 @@ import { packageRoot } from "./lib/repo-root.js";
 export const POLICY_SECTION = "harness";
 
 /**
- * The policy's opening line. Older `/setup-pi-myself` runs copied the policy
+ * The policy's opening line. Older `/setup-pi-harness` runs copied the policy
  * into `.pi/APPEND_SYSTEM.md`, so this line in pi's appended text means a stale
  * copy; scripts/setup-project.mjs detects it by the same string.
  */
 export const STALE_COPY_MARKER = "Runtime playbook: which process owns the work";
 
 const STALE_COPY_NOTICE =
-	"pi-myself: .pi/APPEND_SYSTEM.md is an old copy of the harness workflow policy, so the current policy is not injected. Run /setup-pi-myself to migrate it (an edited copy is kept as APPEND_SYSTEM.md.local).";
+	"pi-harness: .pi/APPEND_SYSTEM.md is an old copy of the harness workflow policy, so the current policy is not injected. Run /setup-pi-harness to migrate it (an edited copy is kept as APPEND_SYSTEM.md.local).";
 
 /** pi appends a trusted project's `.pi/APPEND_SYSTEM.md`, else the agent directory's
  * (resource-loader discoverAppendSystemPromptFile): the notice names the file it read. */
 function staleCopyNotice(ctx: ExtensionContext): string {
 	const projectCopy = ctx.isProjectTrusted() && existsSync(join(ctx.cwd, ".pi", "APPEND_SYSTEM.md"));
 	if (projectCopy) return STALE_COPY_NOTICE;
-	return `pi-myself: APPEND_SYSTEM.md in the pi agent directory (${join(agentDir(), "APPEND_SYSTEM.md")}) holds an old copy of the harness workflow policy, so the current policy is not injected. Remove that copy from it; /setup-pi-myself migrates only a project's own .pi/APPEND_SYSTEM.md.`;
+	return `pi-harness: APPEND_SYSTEM.md in the pi agent directory (${join(agentDir(), "APPEND_SYSTEM.md")}) holds an old copy of the harness workflow policy, so the current policy is not injected. Remove that copy from it; /setup-pi-harness migrates only a project's own .pi/APPEND_SYSTEM.md.`;
 }
 
 function readPolicy(path: string): { text: string } | { error: string } {
@@ -72,7 +72,7 @@ export function createPolicyExtension(workflowPath: string): (pi: ExtensionAPI) 
 			if ("error" in policy) {
 				noticeOnce(
 					ctx,
-					`pi-myself: workflow policy not injected; cannot read WORKFLOW.md (${policy.error}). Reinstall the package.`,
+					`pi-harness: workflow policy not injected; cannot read WORKFLOW.md (${policy.error}). Reinstall the package.`,
 					"error",
 				);
 				return;

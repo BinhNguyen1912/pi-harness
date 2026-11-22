@@ -10,13 +10,13 @@ import { gitTopLevel, packageRoot } from "./lib/repo-root.js";
  *
  * - `write`/`edit` into the vendored upstream tree (`vendor/mattpocock-skills/`)
  *   or its lock (`skills-lock.json`) is blocked, relative to the repository root
- *   and to the pi-myself package root (in a consuming repo the vendored tree
+ *   and to the pi-harness package root (in a consuming repo the vendored tree
  *   lives inside the installed package).
  * - `write`/`edit` into generated or runtime state relative to the repository
  *   root (AGENTS.md "Boundaries and Safety": `node_modules/`, `.pi/node_modules/`,
  *   `.pi/git/`, `.pi/npm/`, `.pi/sessions/`, `.pi/task-exits/`, `.pi/artifacts/`,
  *   `.pi/task-session-history.json`) is blocked.
- * - `bash` without a `timeout` gets one: 1800 seconds, or `PI_MYSELF_BASH_TIMEOUT`
+ * - `bash` without a `timeout` gets one: 1800 seconds, or `PI_HARNESS_BASH_TIMEOUT`
  *   (positive finite seconds, read when the extension loads). pi's bash tool has
  *   no default, so a hung command would wedge the session. An explicit timeout
  *   is left exactly as given, including the `0` pi rejects.
@@ -63,7 +63,7 @@ const RUNTIME_STATE: readonly ProtectedPath[] = [
 const DEFAULT_BASH_TIMEOUT_SECONDS = 1800;
 
 function bashTimeoutFromEnv(): number {
-	const value = Number(process.env.PI_MYSELF_BASH_TIMEOUT);
+	const value = Number(process.env.PI_HARNESS_BASH_TIMEOUT);
 	return Number.isFinite(value) && value > 0 ? value : DEFAULT_BASH_TIMEOUT_SECONDS;
 }
 
@@ -161,7 +161,7 @@ export function createGuardExtension(pkgRoot: string): (pi: ExtensionAPI) => voi
 			const repoRoots = repoRootsOf(ctx.cwd);
 			const rule = findProtected(targets, [...repoRoots, ...packageRoots], VENDORED) ?? findProtected(targets, repoRoots, RUNTIME_STATE);
 			if (!rule) return undefined;
-			return { block: true, reason: `pi-myself guard: ${path} is ${rule.what}. Do not ${event.toolName} it; ${rule.instead}.` };
+			return { block: true, reason: `pi-harness guard: ${path} is ${rule.what}. Do not ${event.toolName} it; ${rule.instead}.` };
 		});
 	};
 }

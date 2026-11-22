@@ -139,7 +139,7 @@ test("runtime-state names elsewhere, or nested below the root, are ordinary file
 });
 
 test("bash without a timeout gets the 1800-second default; other tools and explicit timeouts are untouched", async () => {
-	delete process.env.PI_MYSELF_BASH_TIMEOUT;
+	delete process.env.PI_HARNESS_BASH_TIMEOUT;
 	const { call } = load(guardExtension);
 	const bare = await call(CHECKOUT, "bash", { command: "npm test" });
 	assert.equal(bare.verdict, undefined, "bash is never blocked");
@@ -150,15 +150,15 @@ test("bash without a timeout gets the 1800-second default; other tools and expli
 	assert.deepEqual((await call(CHECKOUT, "read", { path: "README.md" })).input, { path: "README.md" });
 });
 
-test("PI_MYSELF_BASH_TIMEOUT overrides the default when it is a positive finite number of seconds, read at load", async () => {
-	const saved = process.env.PI_MYSELF_BASH_TIMEOUT;
+test("PI_HARNESS_BASH_TIMEOUT overrides the default when it is a positive finite number of seconds, read at load", async () => {
+	const saved = process.env.PI_HARNESS_BASH_TIMEOUT;
 	try {
-		process.env.PI_MYSELF_BASH_TIMEOUT = "90";
+		process.env.PI_HARNESS_BASH_TIMEOUT = "90";
 		const { call } = load(guardExtension);
-		process.env.PI_MYSELF_BASH_TIMEOUT = "5";
+		process.env.PI_HARNESS_BASH_TIMEOUT = "5";
 		assert.equal((await call(CHECKOUT, "bash", { command: "ls" })).input.timeout, 90, "the value at load wins");
 		for (const invalid of ["0", "-3", "abc", "Infinity", ""]) {
-			process.env.PI_MYSELF_BASH_TIMEOUT = invalid;
+			process.env.PI_HARNESS_BASH_TIMEOUT = invalid;
 			assert.equal(
 				(await load(guardExtension).call(CHECKOUT, "bash", { command: "ls" })).input.timeout,
 				1800,
@@ -166,21 +166,21 @@ test("PI_MYSELF_BASH_TIMEOUT overrides the default when it is a positive finite 
 			);
 		}
 	} finally {
-		if (saved === undefined) delete process.env.PI_MYSELF_BASH_TIMEOUT;
-		else process.env.PI_MYSELF_BASH_TIMEOUT = saved;
+		if (saved === undefined) delete process.env.PI_HARNESS_BASH_TIMEOUT;
+		else process.env.PI_HARNESS_BASH_TIMEOUT = saved;
 	}
 });
 
 test("a ~/ path is expanded before matching", async () => {
 	const home = mkdtempSync(join(tmpdir(), "guard-home-"));
 	temps.push(home);
-	const pkg = join(home, "pkgs", "pi-myself");
+	const pkg = join(home, "pkgs", "pi-harness");
 	mkdirSync(pkg, { recursive: true });
 	const savedHome = process.env.HOME;
 	process.env.HOME = home;
 	try {
 		const { write } = load(createGuardExtension(pkg));
-		assert.equal((await write(tempRepo(), "~/pkgs/pi-myself/vendor/mattpocock-skills/a.md"))?.block, true);
+		assert.equal((await write(tempRepo(), "~/pkgs/pi-harness/vendor/mattpocock-skills/a.md"))?.block, true);
 	} finally {
 		if (savedHome === undefined) delete process.env.HOME;
 		else process.env.HOME = savedHome;

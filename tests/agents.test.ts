@@ -478,13 +478,13 @@ test("every name a catalog row offers still exists", () => {
 	);
 	const exists = (token: string): boolean => {
 		if (token.startsWith("/skill:")) return skillExists(token.slice("/skill:".length));
-		if (token.startsWith("/")) return prompts.has(token) || token === "/setup-pi-myself";
+		if (token.startsWith("/")) return prompts.has(token) || token === "/setup-pi-harness";
 		return skillExists(token) || ROSTER.includes(token) || KNOWN_TOOLS.has(token);
 	};
 	const offenders: string[] = [];
 	for (const row of catalog.matchAll(/^\|[^|\n]*\| (?:human|model) \|([^\n]*)\|$/gm)) {
 		for (const span of (row[1] ?? "").matchAll(/`([^`]+)`/g)) {
-			const token = (span[1] ?? "").split(" ")[0] ?? ""; // `/setup-pi-myself --check` → the command
+			const token = (span[1] ?? "").split(" ")[0] ?? ""; // `/setup-pi-harness --check` → the command
 			if (!exists(token)) offenders.push(token);
 		}
 	}

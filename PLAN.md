@@ -1,6 +1,6 @@
-# PLAN.md — the pi-myself contract
+# PLAN.md — the pi-harness contract
 
-How pi-myself is shaped now; a change that contradicts this file updates it in the same commit. Reasons for hard-to-reverse decisions: `docs/adr/`. Dated history, not guidance: `docs/history.md`. Surfaces: `README.md`; repo map: `PROJECT.md`.
+How pi-harness is shaped now; a change that contradicts this file updates it in the same commit. Reasons for hard-to-reverse decisions: `docs/adr/`. Dated history, not guidance: `docs/history.md`. Surfaces: `README.md`; repo map: `PROJECT.md`.
 
 ## 1. Goal
 
@@ -18,7 +18,7 @@ A pi coding-agent harness built around mattpocock/skills as the process core.
 | D3 | Subagents | **pi-task as-is**; we own the roles in `.pi/agents/` (ADRs 0004–0006, 0009). |
 | D4 | Memory | **pi-workspace-memory as-is**. The harness owns the discipline (`memory` skill, parent-only writes), not the storage (ADR 0002). |
 | D5 | Harness scope | **Only what Matt's skills lack on pi.** A local skill or prompt survives only if it encodes a harness mechanism or a host fact the model cannot infer (dated drops and returns: `docs/history.md`). **Stack-companion clause (2026-09-26, user decision, reversible):** `typescript-coding-standards`, `security-and-hardening`, `source-driven-development`, and `test-proof-debt-audit` stay although they carry craft rather than a host fact. The first three are model-invoked and load only when a task touches their domain; the last is human-run. Where a vendored skill owns the overlapping process they defer to it (`codebase-design`, `tdd`, `research`), and no two own one rule (boundary validation is `security-and-hardening`'s). Dropping one is a catalog row and a directory. |
-| D6 | Install scope | **pi-myself project-scoped** (it carries process; project trust makes the policy opt-in per repo). **Companions global** (host tools, one copy per machine, refreshed by the same `pi update --extensions`). ADR 0007. |
+| D6 | Install scope | **pi-harness project-scoped** (it carries process; project trust makes the policy opt-in per repo). **Companions global** (host tools, one copy per machine, refreshed by the same `pi update --extensions`). ADR 0007. |
 
 Consequences:
 
@@ -32,14 +32,14 @@ Consequences:
 |---|---|---|
 | **Domain** | Matt's conventions | `GLOSSARY.md`, `docs/adr/`, `docs/agents/` (written by `/skill:setup-matt-pocock-skills`) |
 | **Work tracking** | Matt's issue tracker | specs, tickets, blocking edges, triage roles; local default `.scratch/<feature>/issues/` (gitignored) |
-| **Harness** | pi-myself | `pi-workspace-memory` records (`state` facts, `event` findings; outside git) and `recall` over session history |
+| **Harness** | pi-harness | `pi-workspace-memory` records (`state` facts, `event` findings; outside git) and `recall` over session history |
 
 Memory distils; it points at `GLOSSARY.md`, tracker state, or a report instead of copying them.
 
 ## 4. Architecture
 
 ```
-pi-myself/
+pi-harness/
 ├── package.json         # pi.{extensions,skills,prompts}; npm scripts
 ├── PLAN.md  AGENTS.md  PROJECT.md  README.md  GLOSSARY.md
 ├── docs/                # adr/ (decisions), agents/ (skill config), history.md
@@ -72,7 +72,7 @@ pi-myself/
 | Smart-zone awareness | `smart-zone`: footer meter past 60% of ~150k, advice toast at 85%/100%; never compacts |
 | No write guard | `guard`: refuses `write`/`edit` into the vendored tree, the lock, and runtime state; 30-minute default `bash` timeout. Not a permission system: shell writes pass |
 | Context loss after compaction | `dcp/` `recall`; `continue-after-compaction` resumes only a run a manual `/compact` interrupted |
-| Harness rules never reach a consuming repo | `policy` injects the workflow policy (ADR 0003); `/setup-pi-myself` copies the roles (ADR 0005) and `--check` is a read-only doctor |
+| Harness rules never reach a consuming repo | `policy` injects the workflow policy (ADR 0003); `/setup-pi-harness` copies the roles (ADR 0005) and `--check` is a read-only doctor |
 
 ## 6. What we kept from pikit
 

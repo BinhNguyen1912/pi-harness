@@ -10,7 +10,7 @@ import provisionExtension, { SETUP_TIMEOUT_MS, setupReport } from "../provision.
 
 const PKG = resolve(import.meta.dirname, "..", "..", "..");
 
-test("packageRoot resolves the pi-myself package from an extension file URL in both layouts", () => {
+test("packageRoot resolves the pi-harness package from an extension file URL in both layouts", () => {
 	const fromTopLevel = packageRoot(new URL("../provision.ts", import.meta.url).href);
 	const fromSubdir = packageRoot(new URL("../tracker/index.ts", import.meta.url).href);
 	assert.equal(fromTopLevel, PKG);
@@ -33,16 +33,16 @@ test("resolveRepoRoot returns the git top-level from a nested cwd, else the cwd 
 	}
 });
 
-test("provision registers /setup-pi-myself and never checks the provisioned copies at session start", () => {
+test("provision registers /setup-pi-harness and never checks the provisioned copies at session start", () => {
 	const events: string[] = [];
 	const commands: string[] = [];
 	const pi = { on: (event: string) => events.push(event), registerCommand: (name: string) => commands.push(name) };
 	provisionExtension(pi as unknown as ExtensionAPI);
-	assert.deepEqual(commands, ["setup-pi-myself"]);
+	assert.deepEqual(commands, ["setup-pi-harness"]);
 	assert.deepEqual(events, [], "rerunning the command is the update path — no session-start check of the provisioned copies");
 });
 
-test("/setup-pi-myself reports why the script did not finish instead of an empty failure", () => {
+test("/setup-pi-harness reports why the script did not finish instead of an empty failure", () => {
 	const base = { stdout: "", stderr: "", signal: null, status: null, error: undefined };
 	const timedOut = setupReport({
 		...base,

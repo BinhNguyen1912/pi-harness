@@ -37,8 +37,8 @@ const COMMANDS = [
 	skill("wayfinder"),
 	skill("verify"),
 	prompt("verify"),
-	extension("setup-pi-myself"),
-	skill("setup-pi-myself"),
+	extension("setup-pi-harness"),
+	skill("setup-pi-harness"),
 ];
 
 test("a bare skill command is rewritten to pi's /skill:<name>, keeping the rest of the input", async () => {
@@ -78,7 +78,7 @@ test("input that is not a bare registered skill is left alone", async () => {
 
 test("a prompt template or extension command that owns /<name> wins over a same-named skill", async () => {
 	const { input } = load(COMMANDS);
-	for (const text of ["/verify", "/verify the branch", "/setup-pi-myself"]) {
+	for (const text of ["/verify", "/verify the branch", "/setup-pi-harness"]) {
 		const result = await input(text);
 		assert.ok(result === undefined || result.action === "continue", `${text} → ${JSON.stringify(result)}`);
 	}

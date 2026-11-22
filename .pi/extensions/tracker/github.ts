@@ -132,7 +132,7 @@ function ensureLabels(root: string, names: string[], run: GhRun, notes: string[]
 	}
 	for (const name of wanted) {
 		if (known.has(name)) continue;
-		const spec = LABEL_DEFAULTS[name] ?? { color: "ededed", description: "Created by the pi-myself tracker tool" };
+		const spec = LABEL_DEFAULTS[name] ?? { color: "ededed", description: "Created by the pi-harness tracker tool" };
 		try {
 			run(root, ["label", "create", name, "--color", spec.color, "--description", spec.description]);
 			known.add(name);

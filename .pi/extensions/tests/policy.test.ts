@@ -79,16 +79,16 @@ test("an old provisioned APPEND_SYSTEM.md suppresses the injection and says how 
 		assert.equal(run(stale)[POLICY_SECTION], undefined, "no second copy of the policy beside the stale one");
 		assert.equal(run(stale)[POLICY_SECTION], undefined);
 		assert.equal(notices.length, 1, "one notice per session, not one per turn");
-		assert.match(notices[0]?.message ?? "", /Run \/setup-pi-myself to migrate it/);
+		assert.match(notices[0]?.message ?? "", /Run \/setup-pi-harness to migrate it/);
 		assert.equal(notices[0]?.type, "warning");
 	} finally {
 		rmSync(project, { recursive: true, force: true });
 	}
 });
 
-test("a stale copy in the global APPEND_SYSTEM.md is named as such, not sent to /setup-pi-myself", () => {
+test("a stale copy in the global APPEND_SYSTEM.md is named as such, not sent to /setup-pi-harness", () => {
 	// With no trusted project file, pi appends <agent-dir>/APPEND_SYSTEM.md, which
-	// /setup-pi-myself cannot migrate: the notice must point at that file.
+	// /setup-pi-harness cannot migrate: the notice must point at that file.
 	delete process.env.PI_TASK_TOOL_DISABLED;
 	const project = mkdtempSync(join(tmpdir(), "policy-no-project-copy-"));
 	try {
@@ -96,7 +96,7 @@ test("a stale copy in the global APPEND_SYSTEM.md is named as such, not sent to 
 		const { run, notices } = load(policyExtension, { cwd: project });
 		assert.equal(run(stale)[POLICY_SECTION], undefined);
 		assert.match(notices[0]?.message ?? "", /APPEND_SYSTEM\.md in the pi agent directory/);
-		assert.doesNotMatch(notices[0]?.message ?? "", /\/setup-pi-myself to migrate/);
+		assert.doesNotMatch(notices[0]?.message ?? "", /\/setup-pi-harness to migrate/);
 
 		// an untrusted project's own file is not loaded either, so the copy is the global one
 		mkdirSync(join(project, ".pi"), { recursive: true });
@@ -106,7 +106,7 @@ test("a stale copy in the global APPEND_SYSTEM.md is named as such, not sent to 
 		assert.match(untrusted.notices[0]?.message ?? "", /agent directory/);
 		const trusted = load(policyExtension, { cwd: project, trusted: true });
 		trusted.run(stale);
-		assert.match(trusted.notices[0]?.message ?? "", /Run \/setup-pi-myself/);
+		assert.match(trusted.notices[0]?.message ?? "", /Run \/setup-pi-harness/);
 	} finally {
 		rmSync(project, { recursive: true, force: true });
 	}
@@ -135,7 +135,7 @@ test("the package ships no .pi/APPEND_SYSTEM.md: pi would append it beside the i
 	assert.equal(existsSync(WORKFLOW), true);
 });
 
-test("/setup-pi-myself recognises an old copy by the same marker this extension yields to", () => {
+test("/setup-pi-harness recognises an old copy by the same marker this extension yields to", () => {
 	// The script is plain .mjs and cannot import the constant; this pins the two copies together.
 	const script = readFileSync(join(PKG, "scripts", "setup-project.mjs"), "utf8");
 	assert.ok(script.includes(`"${STALE_COPY_MARKER}"`), "scripts/setup-project.mjs must detect a stale copy by STALE_COPY_MARKER");

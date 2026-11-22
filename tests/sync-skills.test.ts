@@ -30,7 +30,7 @@ const VENDOR_REL = join("vendor", "mattpocock-skills");
 
 /** A copy of the checkout's sync surface; the script treats its own parent as the root. */
 function fakeCheckout(): string {
-	const root = mkdtempSync(join(tmpdir(), "pi-myself-sync-"));
+	const root = mkdtempSync(join(tmpdir(), "pi-harness-sync-"));
 	mkdirSync(join(root, "scripts"));
 	copyFileSync(join(ROOT, "scripts", "sync-skills.mjs"), join(root, "scripts", "sync-skills.mjs"));
 	cpSync(join(ROOT, VENDOR_REL), join(root, VENDOR_REL), { recursive: true, verbatimSymlinks: true });
@@ -136,7 +136,7 @@ const GIT_ENV = {
  * (its HEAD) is `next`, so a clone that does not ask for `main` vendors the
  * wrong tree. */
 function fakeUpstream(): { dir: string; main: string } {
-	const dir = mkdtempSync(join(tmpdir(), "pi-myself-upstream-"));
+	const dir = mkdtempSync(join(tmpdir(), "pi-harness-upstream-"));
 	const git = (...args: string[]) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", env: GIT_ENV }).trim();
 	const skill = join(dir, "skills", "engineering", "demo", "SKILL.md");
 	git("init", "--quiet", "--initial-branch", "main");
@@ -294,12 +294,12 @@ test("a sync whose clone fails says the tree and the lock were left as they were
 	// only `next` is left: `--branch main` has nothing to clone
 	execFileSync("git", ["-C", noMain.dir, "branch", "-D", "main"], { env: GIT_ENV });
 	for (const [label, upstream] of [
-		["no upstream at all", join(tmpdir(), "pi-myself-no-such-upstream")],
+		["no upstream at all", join(tmpdir(), "pi-harness-no-such-upstream")],
 		["an upstream without main", noMain.dir],
 	] as const) {
 		const root = fakeCheckout();
 		const lockBefore = readFileSync(join(root, "skills-lock.json"), "utf8");
-		const temp = mkdtempSync(join(tmpdir(), "pi-myself-sync-tmp-"));
+		const temp = mkdtempSync(join(tmpdir(), "pi-harness-sync-tmp-"));
 		const result = syncFrom(root, upstream, [], { TMPDIR: temp });
 		assert.equal(result.status, 1, `${label}:\n${result.output}`);
 		assert.match(result.output, /git clone .* failed/, label);

@@ -1,4 +1,4 @@
-# pi-myself
+# pi-harness
 
 A pi coding-agent harness built around Matt Pocock's skills as the process core. Current-state contract: `PLAN.md`; decisions and their reasons: `docs/adr/`; dated history: `docs/history.md`. Repo map: `PROJECT.md`. Behavior rules: `AGENTS.md`.
 
@@ -12,14 +12,14 @@ _Avoid_: "skills/" alone (ambiguous with `.pi/skills/`), "fork" (we never fork t
 A skill listed in the vendored `.claude-plugin/plugin.json` (the `skills/engineering` + `skills/productivity` trees).
 
 **Beta skill**:
-A skill under the vendored `skills/in-progress/` tree. Upstream keeps them out of the plugin and they may change, graduate into the promoted set, or vanish without warning; pi-myself registers them anyway (all user-invoked, via `/skill:<name>`), locks them under `bucket: beta`, and supplies the roles and tools they name. `misc/` and `deprecated/` stay unregistered.
+A skill under the vendored `skills/in-progress/` tree. Upstream keeps them out of the plugin and they may change, graduate into the promoted set, or vanish without warning; pi-harness registers them anyway (all user-invoked, via `/skill:<name>`), locks them under `bucket: beta`, and supplies the roles and tools they name. `misc/` and `deprecated/` stay unregistered.
 _Avoid_: "experimental skill", "unstable"
 
 **Registered set**:
 Promoted + beta: what `package.json`, `.pi/settings.json`, the `skill` tool, and `skills-lock.json` all agree on.
 
 **Harness layer**:
-Everything pi-myself adds around the vendored tree: `.pi/` (extensions, skills, agents, policy, prompts, settings) plus `scripts/` and `tests/`. The harness adapts pi to Matt's skills; it never introduces a second process.
+Everything pi-harness adds around the vendored tree: `.pi/` (extensions, skills, agents, policy, prompts, settings) plus `scripts/` and `tests/`. The harness adapts pi to Matt's skills; it never introduces a second process.
 _Avoid_: "the framework", "runtime config"
 
 **Backend (tracker)**:
@@ -27,7 +27,7 @@ Which issue-tracker implementation the `tracker` tool uses: the **local backend*
 _Avoid_: "mode", "driver"
 
 **Prompt**:
-A hand-written slash command at `.pi/prompts/<name>.md` (`/verify`, `/init`). Skills are never wrapped: pi exposes each one natively as `/skill:<name>` (a bare `/<name>` is rewritten to it by the `host-commands` input handler, not a wrapper); `/setup-pi-myself` is an extension command, not a prompt.
+A hand-written slash command at `.pi/prompts/<name>.md` (`/verify`, `/init`). Skills are never wrapped: pi exposes each one natively as `/skill:<name>` (a bare `/<name>` is rewritten to it by the `host-commands` input handler, not a wrapper); `/setup-pi-harness` is an extension command, not a prompt.
 _Avoid_: "wrapper" (the generated wrapper layer was removed 2026-08-30), "alias"
 
 **Workflow policy**:
@@ -54,7 +54,7 @@ _Avoid_: "textbook skill"
 `.pi/pi-myself-provisioned.json` in a consuming repo: per role, the hash of what the package shipped without its `model`, `thinking`, and `max_turns` lines, plus the values it shipped for them. It tells a project's edit or choice apart from the package's previous version (ADR 0005).
 
 **Doctor**:
-`/setup-pi-myself --check`: a read-only report on a repo's harness setup, one `ok`/`warn` line per check, each warning with its fix.
+`/setup-pi-harness --check`: a read-only report on a repo's harness setup, one `ok`/`warn` line per check, each warning with its fix.
 
 **Host token**:
 A command, file, or mechanism a vendored skill names that pi lacks or names differently (`/clear`, `/handoff`, `CLAUDE.md`, `claude --bg`, a script that reads stdin). Each needs a row in `pi-mapping.md`'s host table; `tests/agents.test.ts` fails on a pinned one without it.

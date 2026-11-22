@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * setup-project — provision a repository for pi-myself.
+ * setup-project — provision a repository for pi-harness.
  *
  * Why: pi-task discovers task roles only in its bundled defaults,
  * ~/.pi/agent/agents, and <repo>/.pi/agents — never inside an installed
@@ -81,7 +81,7 @@ const UNHASHED_FIELDS = PROJECT_OWNED_FIELDS;
  * without fighting the pattern. The package checkout is exempt, because there
  * `.pi/` is the package source.
  */
-const GITIGNORE_MARKER = "# pi-myself: .pi/ is local harness state";
+const GITIGNORE_MARKER = "# pi-harness: .pi/ is local harness state";
 const GITIGNORE_LINE = ".pi/*";
 /** Any of these already covers the repository's `.pi/`. */
 export const GITIGNORE_COVERING_LINES = Object.freeze([".pi/*", "/.pi/*", ".pi/", "/.pi/", ".pi"]);
@@ -117,7 +117,7 @@ const STALE_COPY_MARKER = "Runtime playbook: which process owns the work";
 
 const agentsSource = join(packagePi, "agents");
 if (!existsSync(agentsSource)) {
-	console.error(`setup-project: no .pi/agents next to this script (${packagePi}) — run from an unmodified pi-myself package`);
+	console.error(`setup-project: no .pi/agents next to this script (${packagePi}) — run from an unmodified pi-harness package`);
 	process.exit(1);
 }
 
@@ -350,9 +350,9 @@ for (const [rel, previous] of Object.entries(shippedBefore)) {
 	const untouched = typeof previous === "string" ? sha256(existing) === previous : normalizedHash(existing) === previous.sha256;
 	if (untouched) {
 		fsWrite.remove(target);
-		record(["removed", "pi-myself no longer ships this role"], rel);
+		record(["removed", "pi-harness no longer ships this role"], rel);
 	} else {
-		record(["kept", "pi-myself no longer ships this role; your edits make it the project's now"], rel);
+		record(["kept", "pi-harness no longer ships this role; your edits make it the project's now"], rel);
 	}
 }
 
@@ -373,7 +373,7 @@ for (const [rel, previous] of Object.entries(shippedBefore)) {
 			if (backup !== undefined) fsWrite.write(backup, text);
 			fsWrite.remove(target);
 			const note = backup === undefined ? "" : `; your copy saved as ${basename(backup)} — move its project rules into AGENTS.md`;
-			record(["removed", `the workflow policy is now injected by the pi-myself policy extension${note}`], rel);
+			record(["removed", `the workflow policy is now injected by the pi-harness policy extension${note}`], rel);
 		}
 	}
 }
@@ -525,7 +525,7 @@ if (!sameRoot(targetRoot, packageRoot)) {
 if (!sameRoot(targetRoot, packageRoot)) {
 	const files = Object.fromEntries(Object.entries(shippedNow).sort(([a], [b]) => a.localeCompare(b)));
 	const note =
-		"Written by /setup-pi-myself: per role, the sha256 of the file pi-myself shipped (model, thinking and max_turns lines removed) and the values it shipped for those fields. It tells a project edit apart from the package's own previous version (only an edit is backed up as <name>.local). Project model, thinking and max_turns choices are kept. Local state, never committed: .pi/ is gitignored in a consuming repository (ADR 0008).";
+		"Written by /setup-pi-harness: per role, the sha256 of the file pi-harness shipped (model, thinking and max_turns lines removed) and the values it shipped for those fields. It tells a project edit apart from the package's own previous version (only an edit is backed up as <name>.local). Project model, thinking and max_turns choices are kept. Local state, never committed: .pi/ is gitignored in a consuming repository (ADR 0008).";
 	const body = `${JSON.stringify({ note, version: 2, files }, null, "\t")}\n`;
 	if (!existsSync(BASELINE) || readFileSync(BASELINE, "utf8") !== body) {
 		if (CHECK) console.log(`${LINE_PREFIX}updated  pi-myself-provisioned.json (the baseline a real run records)`);
@@ -539,7 +539,7 @@ const extra = ["removed", "kept"]
 	.join("");
 const summary = `${counts.created} created, ${counts.updated} updated, ${counts.unchanged} unchanged${extra} in ${targetPi}`;
 if (CHECK) {
-	const verdict = pendingWrites > 0 ? "stale: run /setup-pi-myself to apply" : "current";
+	const verdict = pendingWrites > 0 ? "stale: run /setup-pi-harness to apply" : "current";
 	console.log(`setup-project --check: ${summary} — dry run, nothing written; ${verdict}`);
 } else {
 	console.log(`setup-project: ${summary}`);

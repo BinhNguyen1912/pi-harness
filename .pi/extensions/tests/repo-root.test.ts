@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 
 import { gitTopLevel, packageRoot } from "../lib/repo-root.js";
 
-// packageRoot feeds /setup-pi-myself (it locates scripts/setup-project.mjs) and
+// packageRoot feeds /setup-pi-harness (it locates scripts/setup-project.mjs) and
 // the install-layout paths, so it has to resolve in every layout — not only
 // where the path happens to be free of spaces.
 

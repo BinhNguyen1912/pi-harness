@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
  * Shared root resolution for the harness extensions (a support module: no
  * index.ts here, so pi never loads it as an extension).
  *
- * - `packageRoot(importMetaUrl)`: the pi-myself package directory that owns
+ * - `packageRoot(importMetaUrl)`: the pi-harness package directory that owns
  *   the calling extension file — valid in the checkout and in every install
  *   layout (project-local git/npm, global, local path).
  * - `resolveRepoRoot(cwd)`: the consuming repository's root — the git

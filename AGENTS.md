@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`pi-myself` is a pi package: a harness around the vendored **mattpocock/skills** core. `PLAN.md` is the current-state contract and `docs/history.md` its dated history; `PROJECT.md` is the repository map. Trust `package.json` for registered pi paths, and tracked files and tests for behavior.
+`pi-harness` is a pi package: a harness around the vendored **mattpocock/skills** core. `PLAN.md` is the current-state contract and `docs/history.md` its dated history; `PROJECT.md` is the repository map. Trust `package.json` for registered pi paths, and tracked files and tests for behavior.
 
 ## Entry Points
 
@@ -8,8 +8,8 @@
 - `.pi/extensions/` contains runtime TypeScript extensions. Pi discovers top-level `.ts` files and one-level subdirectories with `index.ts`; keep tests beside their owner.
 - `.pi/skills/<name>/SKILL.md` defines our own model-visible skills; progressive references and executable helpers stay with their owning skill.
 - `vendor/mattpocock-skills/` is the **vendored upstream** `mattpocock/skills` tree. It is read-only by rule: never edit files under it. Upgrade it with `npm run sync:skills`.
-- `.pi/prompts/<name>.md` defines the hand-written user slash commands (`/verify`, `/init`). Skills need no wrapper: pi exposes every skill natively as `/skill:<name>`. `/setup-pi-myself` is a command the `provision` extension registers.
-- `scripts/sync-skills.mjs` is the gate for all vendored-tree changes; its lock digests every vendored file. `scripts/setup-project.mjs` provisions a consuming repo (run by `/setup-pi-myself`).
+- `.pi/prompts/<name>.md` defines the hand-written user slash commands (`/verify`, `/init`). Skills need no wrapper: pi exposes every skill natively as `/skill:<name>`. `/setup-pi-harness` is a command the `provision` extension registers.
+- `scripts/sync-skills.mjs` is the gate for all vendored-tree changes; its lock digests every vendored file. `scripts/setup-project.mjs` provisions a consuming repo (run by `/setup-pi-harness`).
 - `.pi/policy/`: `WORKFLOW.md` is the parent's workflow policy, injected by the `policy` extension; `CHILD-CONTRACT.md` holds the rules every task child follows, spliced into the end of each role by `npm run agents:sync` (a child never sees the policy). Edit these sources, never a generated block.
 
 ## Commands

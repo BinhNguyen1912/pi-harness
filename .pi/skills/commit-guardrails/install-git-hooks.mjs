@@ -41,7 +41,7 @@ import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 /** Any hook carrying this token is ours to overwrite; one without it is the project's. */
-const MARKER = "pi-myself:";
+const MARKER = "pi-harness:";
 
 /** The staged check used when `--command` is omitted — only valid where Biome is installed. */
 const BIOME_COMMAND = "npx --no-install biome check --staged --no-errors-on-unmatched";
@@ -54,7 +54,7 @@ if [ -x "$local_hook" ]; then "$local_hook" "$@" || exit $?; fi`;
 
 function preCommit(command) {
 	return `#!/bin/sh
-# Installed by pi-myself (commit-guardrails skill); delete this file to uninstall.
+# Installed by pi-harness (commit-guardrails skill); delete this file to uninstall.
 # ${MARKER} pre-commit
 ${chainLocal("pre-commit")}
 exec ${command}
@@ -62,7 +62,7 @@ exec ${command}
 }
 
 const PREPARE_COMMIT_MSG = `#!/bin/sh
-# Installed by pi-myself (commit-guardrails skill); delete this file to uninstall.
+# Installed by pi-harness (commit-guardrails skill); delete this file to uninstall.
 # ${MARKER} prepare-commit-msg
 # Ties the commit to the pi session that produced it. Skipped when pi exported
 # nothing, and for merge/squash commits whose message git generated. A trailer
@@ -165,7 +165,7 @@ function desiredHooks(command, trailer) {
 /**
  * One rule for both passes (the refusal check and the install): "missing";
  * "ours" (a regular file carrying the marker, refreshed in place); "ours-linked"
- * (a link to a pi-myself hook: replaced by a regular file, never moved to
+ * (a link to a pi-harness hook: replaced by a regular file, never moved to
  * `.local`, where the chain would call itself); or "foreign" (anything else,
  * moved to `.local` and run first).
  */
@@ -207,7 +207,7 @@ function main() {
 			const path = join(hooksDir, name);
 			if (classify(inspect(path)) === "foreign" && inspect(`${path}.local`).exists) {
 				throw new Error(
-					`${name}.local already holds a hook pi-myself kept earlier, and ${name} is another hook it did not write; merge the two by hand (or move one away), then rerun`,
+					`${name}.local already holds a hook pi-harness kept earlier, and ${name} is another hook it did not write; merge the two by hand (or move one away), then rerun`,
 				);
 			}
 		}
@@ -224,7 +224,7 @@ function main() {
 		if (options.check) {
 			stale = true;
 			const why =
-				kind === "foreign" ? " (a hook pi-myself did not write is in its place)" : kind === "ours-linked" ? " (a link, not a file)" : "";
+				kind === "foreign" ? " (a hook pi-harness did not write is in its place)" : kind === "ours-linked" ? " (a link, not a file)" : "";
 			actions.push(`stale    ${name}${why}`);
 			continue;
 		}
@@ -232,9 +232,9 @@ function main() {
 		if (kind === "foreign") {
 			// move, never copy or write through: a link stays a link, a script keeps its mode
 			renameSync(path, `${path}.local`);
-			actions.push(`kept     ${name}.local (a hook pi-myself did not write; the new ${name} runs it first)`);
+			actions.push(`kept     ${name}.local (a hook pi-harness did not write; the new ${name} runs it first)`);
 		} else if (kind === "ours-linked") {
-			// the link's target is a pi-myself hook: drop the link, never write through it
+			// the link's target is a pi-harness hook: drop the link, never write through it
 			rmSync(path);
 		}
 		writeFileSync(path, content);

@@ -6,7 +6,7 @@ import { agentDir } from "./lib/agent-dir.js";
 import { packageRoot, resolveRepoRoot } from "./lib/repo-root.js";
 
 /**
- * provision — `/setup-pi-myself` runs scripts/setup-project.mjs from this
+ * provision — `/setup-pi-harness` runs scripts/setup-project.mjs from this
  * package against the repository root (no path hunting: the extension knows
  * where it lives), copying the one thing pi-task loads only from the project's
  * own `.pi/`: the task roles.
@@ -21,13 +21,13 @@ import { packageRoot, resolveRepoRoot } from "./lib/repo-root.js";
  * or a CONTEXT-MAP.md with each per-context file it lists. Of settings.json it
  * never writes project model settings.
  *
- * `/setup-pi-myself --check` is the read-only doctor instead: `runDoctor` (pure
+ * `/setup-pi-harness --check` is the read-only doctor instead: `runDoctor` (pure
  * over injected tool names, file reader, and spawn) reports `ok`/`warn` per
  * check — stale roles (the script's own `--check`), optional reviewer model family
  * against the reason tier (when roles are pinned),
  * companion tools, the `srcwalk` tool against the CLI it runs, tracker docs, a
  * glossary under a name the skills stopped reading, a globally installed
- * pi-myself (ADR 0007), and runtime state git does not ignore — each warning
+ * pi-harness (ADR 0007), and runtime state git does not ignore — each warning
  * with its fix.
  */
 
@@ -94,7 +94,7 @@ const SRCWALK_TOOL = "srcwalk";
 const SRCWALK_SOURCE = "npm:@sting8k/pi-srcwalk";
 const DOMAIN_DOC = "docs/agents/domain.md";
 const TRACKER_DOCS = ["docs/agents/issue-tracker.md", DOMAIN_DOC] as const;
-/** The context files pi may load for a repository; `/setup-pi-myself` never edits them, so a stale mention is the repository's to fix. */
+/** The context files pi may load for a repository; `/setup-pi-harness` never edits them, so a stale mention is the repository's to fix. */
 const CONTEXT_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
 /** The glossary's names before mattpocock/skills renamed it to `GLOSSARY.md` / `GLOSSARY-MAP.md`. */
 const OLD_GLOSSARY_NAME = /\bCONTEXT(?:-MAP)?\.md\b/;
@@ -146,13 +146,13 @@ function checkRoles(inputs: DoctorInputs): DoctorFinding {
 		return { status: "ok", check: "roles", detail: ["the task roles match the package", ...notes].join("\n") };
 	}
 	if (!result.error && result.status === 1 && /^setup-project --check: /m.test(output)) {
-		return { status: "warn", check: "roles", detail: `stale against the package:\n${output}`, fix: "run /setup-pi-myself" };
+		return { status: "warn", check: "roles", detail: `stale against the package:\n${output}`, fix: "run /setup-pi-harness" };
 	}
 	return {
 		status: "warn",
 		check: "roles",
 		detail: setupReport(result).message,
-		fix: "resolve the error above, then rerun /setup-pi-myself --check",
+		fix: "resolve the error above, then rerun /setup-pi-harness --check",
 	};
 }
 
@@ -269,7 +269,7 @@ function checkTrackerDocs(inputs: DoctorInputs): DoctorFinding {
 /**
  * mattpocock/skills renamed the domain glossary and reads only the new names,
  * so a file left under an old one is a glossary nothing consults.
- * `/setup-pi-myself` moves a root `CONTEXT.md`, a map with the per-context
+ * `/setup-pi-harness` moves a root `CONTEXT.md`, a map with the per-context
  * glossaries it lists, and the pointer in `domain.md`; what it leaves to a
  * human is named as such: two files to merge, a mention in the repository's own
  * context file. The old names are matched against the root listing, exactly as
@@ -279,7 +279,7 @@ function checkTrackerDocs(inputs: DoctorInputs): DoctorFinding {
 function checkDomainDocs(inputs: DoctorInputs): DoctorFinding {
 	const read = (name: string) => inputs.readFile(join(inputs.repoRoot, name));
 	const detail: string[] = [];
-	const byCommand: string[] = []; // what a /setup-pi-myself run does
+	const byCommand: string[] = []; // what a /setup-pi-harness run does
 	const byHand: string[] = [];
 	if (inputs.rootEntries.includes("CONTEXT.md")) {
 		if (read("GLOSSARY.md") === undefined) {
@@ -314,11 +314,11 @@ function checkDomainDocs(inputs: DoctorInputs): DoctorFinding {
 		byHand.push(`edit the mention in ${mentions.join(" and ")}: the glossary is GLOSSARY.md now`);
 	}
 	if (detail.length === 0) return { status: "ok", check: "domain docs", detail: "no glossary under a name the skills stopped reading" };
-	const fix = byCommand.length > 0 ? [`run /setup-pi-myself (it ${byCommand.join(" and ")})`, ...byHand] : byHand;
+	const fix = byCommand.length > 0 ? [`run /setup-pi-harness (it ${byCommand.join(" and ")})`, ...byHand] : byHand;
 	return { status: "warn", check: "domain docs", detail: detail.join("; "), fix: fix.join("; then ") };
 }
 
-/** The `packages` entry of a settings file that installs pi-myself, as its source text. */
+/** The `packages` entry of a settings file that installs pi-harness, as its source text. */
 function piMyselfSource(text: string | undefined): string | undefined {
 	if (text === undefined) return undefined;
 	let settings: unknown;
@@ -329,7 +329,7 @@ function piMyselfSource(text: string | undefined): string | undefined {
 	}
 	const packages = (settings as { packages?: unknown } | null)?.packages;
 	if (!Array.isArray(packages)) return undefined;
-	const entry = packages.find((item) => JSON.stringify(item).includes("pi-myself"));
+	const entry = packages.find((item) => JSON.stringify(item).includes("pi-harness"));
 	if (entry === undefined) return undefined;
 	const source = typeof entry === "string" ? entry : (entry as { source?: unknown }).source;
 	return typeof source === "string" ? source : JSON.stringify(entry);
@@ -340,7 +340,7 @@ function checkInstallScope(inputs: DoctorInputs): DoctorFinding {
 	const globalSource = piMyselfSource(inputs.readFile(globalSettings));
 	const projectSource = piMyselfSource(inputs.readFile(join(inputs.repoRoot, ".pi", "settings.json")));
 	if (globalSource !== undefined) {
-		// ADR 0007: pi-myself carries process, so it stays per-repo. A global entry
+		// ADR 0007: pi-harness carries process, so it stays per-repo. A global entry
 		// reaches every repository on the machine rather than the ones that opted in,
 		// which project trust enforces. A project entry beside it is neither a second
 		// load to fear nor a conflict: the same identity is deduped (project wins) and
@@ -348,7 +348,7 @@ function checkInstallScope(inputs: DoctorInputs): DoctorFinding {
 		return {
 			status: "warn",
 			check: "install scope",
-			detail: `pi-myself is installed globally (${globalSettings}): its workflow policy and guard would load in every repository, not only the ones that opted in${projectSource === undefined ? "" : `, and this project declares it too (${projectSource})`}`,
+			detail: `pi-harness is installed globally (${globalSettings}): its workflow policy and guard would load in every repository, not only the ones that opted in${projectSource === undefined ? "" : `, and this project declares it too (${projectSource})`}`,
 			fix:
 				projectSource === undefined
 					? `pi remove ${globalSource}, then install it in this project: pi install ${globalSource} -l`
@@ -412,7 +412,7 @@ export function doctorReport(findings: readonly DoctorFinding[]): { message: str
 		const head = `${f.status.padEnd(4)} ${f.check}: ${indent(f.detail)}`;
 		return f.fix === undefined ? head : `${head}\n     fix: ${indent(f.fix)}`;
 	});
-	const summary = `pi-myself doctor (read-only, nothing written): ${findings.length - warnings} ok, ${warnings} warn`;
+	const summary = `pi-harness doctor (read-only, nothing written): ${findings.length - warnings} ok, ${warnings} warn`;
 	return { message: `${lines.join("\n")}\n\n${summary}`, type: warnings > 0 ? "warning" : "info" };
 }
 
@@ -428,9 +428,9 @@ function listDirectory(path: string): string[] {
 export default function provisionExtension(pi: ExtensionAPI): void {
 	const pkg = packageRoot(import.meta.url);
 
-	pi.registerCommand("setup-pi-myself", {
+	pi.registerCommand("setup-pi-harness", {
 		description:
-			"Provision or update this repository for pi-myself: refresh the task roles while keeping project model, thinking and max_turns choices (a copy changed in any other line is kept as .local), leave .pi/settings.json unchanged, remove an APPEND_SYSTEM.md an older run copied (the workflow is injected now), and move a glossary still named CONTEXT.md to GLOSSARY.md, a multi-context CONTEXT-MAP.md and the files it lists included (git mv when tracked, never over an existing file). A project-added role is never touched. `--check`: a read-only doctor that reports what is stale or missing, with fixes, and writes nothing",
+			"Provision or update this repository for pi-harness: refresh the task roles while keeping project model, thinking and max_turns choices (a copy changed in any other line is kept as .local), leave .pi/settings.json unchanged, remove an APPEND_SYSTEM.md an older run copied (the workflow is injected now), and move a glossary still named CONTEXT.md to GLOSSARY.md, a multi-context CONTEXT-MAP.md and the files it lists included (git mv when tracked, never over an existing file). A project-added role is never touched. `--check`: a read-only doctor that reports what is stale or missing, with fixes, and writes nothing",
 		async handler(args, ctx) {
 			const root = resolveRepoRoot(ctx.cwd);
 			if (args.trim().split(/\s+/).includes("--check")) {

@@ -1,6 +1,6 @@
 # Repository Refresh Standard
 
-The baseline every refreshed repository is held to. Where a repository runs Matt Pocock's skills through pi-myself, the canonical owners below are fixed by that process and are never cleanup targets.
+The baseline every refreshed repository is held to. Where a repository runs Matt Pocock's skills through pi-harness, the canonical owners below are fixed by that process and are never cleanup targets.
 
 ## Current truth
 
@@ -12,17 +12,17 @@ The baseline every refreshed repository is held to. Where a repository runs Matt
 - Merge current facts before deleting their stale containers.
 - A document modified before a user-supplied date is presumed suspect, not presumed disposable.
 
-## Canonical owners in a pi-myself repository
+## Canonical owners in a pi-harness repository
 
 Each kind of file has one owner. Refresh consolidates *into* these; it never removes or relocates them.
 
 | Kind | Owner | Files |
 | --- | --- | --- |
 | How to work here | `/init` | `AGENTS.md` (or `CLAUDE.md` alone; a `CLAUDE.md` beside `AGENTS.md` is a deliberate mirror for Claude Code, since pi reads only the first context file in a folder, `AGENTS.md` before `CLAUDE.md`), `PROJECT.md` |
-| Domain | `domain-modeling` (via `grill-with-docs`) | `GLOSSARY.md` (or `GLOSSARY-MAP.md` + per-context `GLOSSARY.md`), `docs/adr/`. The skills read only these names: a `CONTEXT.md` or a `CONTEXT-MAP.md` layout from before upstream renamed them is moved by `/setup-pi-myself`, never kept beside the new name |
+| Domain | `domain-modeling` (via `grill-with-docs`) | `GLOSSARY.md` (or `GLOSSARY-MAP.md` + per-context `GLOSSARY.md`), `docs/adr/`. The skills read only these names: a `CONTEXT.md` or a `CONTEXT-MAP.md` layout from before upstream renamed them is moved by `/setup-pi-harness`, never kept beside the new name |
 | Process configuration | `setup-matt-pocock-skills` | `docs/agents/issue-tracker.md`, `docs/agents/domain.md`, `docs/agents/triage-labels.md`, the `## Agent skills` block in `AGENTS.md` |
 | Work tracking | the configured tracker | `.scratch/<feature>/{spec.md,map.md,issues/}` for the local backend; GitHub or GitLab issues otherwise |
-| Harness runtime | pi-myself | `.pi/agents/` (provisioned roles, refreshed by `/setup-pi-myself`, not edited; `pi-myself-provisioned.json` is its baseline). `.pi/settings.json` is the repo's own, except the default-model keys `/setup-pi-myself` writes. The workflow policy is injected from the package, so an `APPEND_SYSTEM.md` carrying it is a stale copy `/setup-pi-myself` removes. In a consuming repository `.pi/` is machine state, not docs to consolidate — the run ignores `.pi/*` (ADR 0008); only the pi-myself checkout keeps `.pi/skills/` and `.pi/prompts/` as source |
+| Harness runtime | pi-harness | `.pi/agents/` (provisioned roles, refreshed by `/setup-pi-harness`, not edited; `pi-myself-provisioned.json` is its baseline). `.pi/settings.json` is the repo's own, except the default-model keys `/setup-pi-harness` writes. The workflow policy is injected from the package, so an `APPEND_SYSTEM.md` carrying it is a stale copy `/setup-pi-harness` removes. In a consuming repository `.pi/` is machine state, not docs to consolidate — the run ignores `.pi/*` (ADR 0008); only the pi-harness checkout keeps `.pi/skills/` and `.pi/prompts/` as source |
 
 Everything else under `docs/` is a candidate: parallel doctrine, contract, observability, project, and miscellaneous trees whose content belongs to an owner above get merged into it and deleted. Research reports the `research` skill wrote stay where the repo keeps notes unless superseded by an ADR or spec. Durable operational knowledge that belongs to no tracked file goes to memory (`memory_write`), not to a new document.
 

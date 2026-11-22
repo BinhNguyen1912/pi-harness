@@ -69,8 +69,8 @@ name a mechanism pi lacks — read it from this skill's own directory.
 | Situation | Actor | Command or role |
 | --- | --- | --- |
 | Per-repo skill configuration | human | `/skill:setup-matt-pocock-skills` |
-| Install or update the harness's task roles | human | `/setup-pi-myself` |
-| Diagnose the harness setup (read-only) | human | `/setup-pi-myself --check` |
+| Install or update the harness's task roles | human | `/setup-pi-harness` |
+| Diagnose the harness setup (read-only) | human | `/setup-pi-harness --check` |
 | Install a git guardrail | human | `/skill:commit-guardrails` |
 | TypeScript deep-module boundaries | human | `/skill:setup-ts-deep-modules` |
 | Steps only a human can perform | model | `wizard` |

@@ -4,7 +4,7 @@ Seven task roles for the `task` tool. Each file is the role's **prompt** — pi-
 
 ## Roster and tiers
 
-Read, reason, and review tiers fix what a role may do: **read** roles map or search and never change code; **reason** roles change or design; **review** roles judge and never write. The package leaves `model:` and `thinking:` unset, so pi-task inherits the active Pi session. A project may pin a role in its `.pi/agents/` copy; `/setup-pi-myself` keeps that choice. When a second model family is available, assigning it to `reviewer` adds independent coverage. The doctor warns if explicitly pinned reviewer and reason roles share a family.
+Read, reason, and review tiers fix what a role may do: **read** roles map or search and never change code; **reason** roles change or design; **review** roles judge and never write. The package leaves `model:` and `thinking:` unset, so pi-task inherits the active Pi session. A project may pin a role in its `.pi/agents/` copy; `/setup-pi-harness` keeps that choice. When a second model family is available, assigning it to `reviewer` adds independent coverage. The doctor warns if explicitly pinned reviewer and reason roles share a family.
 
 | Role | Tier | Writes? | Serves (Matt's skills) |
 | --- | --- | --- | --- |

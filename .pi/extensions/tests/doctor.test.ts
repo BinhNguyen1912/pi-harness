@@ -7,7 +7,7 @@ import { test } from "node:test";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import provisionExtension, { type DoctorFinding, type DoctorInputs, type DoctorSpawnResult, runDoctor } from "../provision.js";
 
-// `/setup-pi-myself --check` is a read-only doctor: every finding is `ok` or a
+// `/setup-pi-harness --check` is a read-only doctor: every finding is `ok` or a
 // `warn` that names its fix. runDoctor is pure over injected inputs; the
 // handler only gathers them (tools, files, spawn) and notifies one report.
 
@@ -30,7 +30,7 @@ function healthyFiles(): Record<string, string> {
 	const files: Record<string, string> = {
 		[`${REPO}/docs/agents/issue-tracker.md`]: "# tracker\n",
 		[`${REPO}/docs/agents/domain.md`]: "# domain\n",
-		[`${REPO}/.pi/settings.json`]: JSON.stringify({ packages: ["git:github.com/MinhDuyDEV/pi-myself"] }),
+		[`${REPO}/.pi/settings.json`]: JSON.stringify({ packages: ["git:github.com/MinhDuyDEV/pi-harness"] }),
 		[`${AGENT_DIR}/settings.json`]: JSON.stringify({ packages: ["npm:@heyhuynhgiabuu/pi-task"] }),
 	};
 	for (const name of ["explore", "scout", "general", "designer", "ultra-verifier"]) {
@@ -146,10 +146,10 @@ test("stale roles: the doctor runs the script's --check against the repo and rel
 	const roles = finding(findings, "roles");
 	assert.equal(roles.status, "warn");
 	assert.match(roles.detail, /\[check\] updated {2}agents\/general\.md/);
-	assert.match(roles.fix ?? "", /run \/setup-pi-myself/);
+	assert.match(roles.fix ?? "", /run \/setup-pi-harness/);
 });
 
-test("a script that could not run is reported the way /setup-pi-myself reports it, not as stale roles", () => {
+test("a script that could not run is reported the way /setup-pi-harness reports it, not as stale roles", () => {
 	const timedOut = runDoctor(
 		inputs({
 			spawn: (command, args) =>
@@ -267,7 +267,7 @@ test("missing tracker or domain docs point at /skill:setup-matt-pocock-skills", 
 
 test("a glossary under a name the skills stopped reading is a warning, and the fix is the command that moves it", () => {
 	// mattpocock/skills renamed CONTEXT.md / CONTEXT-MAP.md to GLOSSARY.md /
-	// GLOSSARY-MAP.md and reads only the new names. /setup-pi-myself moves a root
+	// GLOSSARY-MAP.md and reads only the new names. /setup-pi-harness moves a root
 	// CONTEXT.md, a map with the per-context glossaries it lists, and the pointer
 	// in domain.md, so for those the fix is the command. What it never does is
 	// named as hand work: merging two files, editing the repository's own context
@@ -277,7 +277,7 @@ test("a glossary under a name the skills stopped reading is a warning, and the f
 	const renamed = finding(runDoctor(inputs({ files })), "domain docs");
 	assert.equal(renamed.status, "warn");
 	assert.match(renamed.detail, /nothing consults CONTEXT\.md/);
-	assert.match(renamed.fix ?? "", /run \/setup-pi-myself/);
+	assert.match(renamed.fix ?? "", /run \/setup-pi-harness/);
 	assert.doesNotMatch(renamed.fix ?? "", /by hand|CONTEXT-MAP/, "only what is there is named");
 
 	// both names present: the command never overwrites, so the merge is a human's
@@ -285,7 +285,7 @@ test("a glossary under a name the skills stopped reading is a warning, and the f
 	const both = finding(runDoctor(inputs({ files })), "domain docs");
 	assert.equal(both.status, "warn");
 	assert.match(both.fix ?? "", /merge CONTEXT\.md into GLOSSARY\.md by hand/);
-	assert.doesNotMatch(both.fix ?? "", /setup-pi-myself/);
+	assert.doesNotMatch(both.fix ?? "", /setup-pi-harness/);
 
 	// a glossary split per context: the command moves the map and the glossaries it lists
 	const mapped = healthyFiles();
@@ -293,14 +293,14 @@ test("a glossary under a name the skills stopped reading is a warning, and the f
 	const map = finding(runDoctor(inputs({ files: mapped })), "domain docs");
 	assert.equal(map.status, "warn");
 	assert.match(map.detail, /nothing consults CONTEXT-MAP\.md/);
-	assert.match(map.fix ?? "", /run \/setup-pi-myself \(it moves CONTEXT-MAP\.md and the per-context glossaries it lists/);
+	assert.match(map.fix ?? "", /run \/setup-pi-harness \(it moves CONTEXT-MAP\.md and the per-context glossaries it lists/);
 	assert.doesNotMatch(map.fix ?? "", /by hand/);
 
 	// two maps: the command never overwrites, so the merge is a human's
 	mapped[`${REPO}/GLOSSARY-MAP.md`] = "- [Ordering](./ordering/GLOSSARY.md)\n";
 	const maps = finding(runDoctor(inputs({ files: mapped })), "domain docs");
 	assert.match(maps.fix ?? "", /merge CONTEXT-MAP\.md into GLOSSARY-MAP\.md by hand/);
-	assert.doesNotMatch(maps.fix ?? "", /setup-pi-myself/);
+	assert.doesNotMatch(maps.fix ?? "", /setup-pi-harness/);
 
 	// a moved map that still lists a CONTEXT.md: a run moves what it can and names what it keeps
 	const partial = healthyFiles();
@@ -308,14 +308,14 @@ test("a glossary under a name the skills stopped reading is a warning, and the f
 	const listed = finding(runDoctor(inputs({ files: partial })), "domain docs");
 	assert.equal(listed.status, "warn");
 	assert.match(listed.detail, /GLOSSARY-MAP\.md still lists a CONTEXT\.md/);
-	assert.match(listed.fix ?? "", /run \/setup-pi-myself/);
+	assert.match(listed.fix ?? "", /run \/setup-pi-harness/);
 
 	const stale = healthyFiles();
 	stale[`${REPO}/docs/agents/domain.md`] = "- **`CONTEXT.md`** at the repo root, or\n";
 	const pointer = finding(runDoctor(inputs({ files: stale })), "domain docs");
 	assert.equal(pointer.status, "warn");
 	assert.match(pointer.detail, /docs\/agents\/domain\.md/);
-	assert.match(pointer.fix ?? "", /run \/setup-pi-myself/);
+	assert.match(pointer.fix ?? "", /run \/setup-pi-harness/);
 
 	// the repository's own context file is never edited by the command: the mention is named
 	const mentioned = healthyFiles();
@@ -324,7 +324,7 @@ test("a glossary under a name the skills stopped reading is a warning, and the f
 	assert.equal(context.status, "warn");
 	assert.match(context.detail, /AGENTS\.md still names CONTEXT\.md/);
 	assert.match(context.fix ?? "", /edit the mention in AGENTS\.md/);
-	assert.doesNotMatch(context.fix ?? "", /setup-pi-myself/);
+	assert.doesNotMatch(context.fix ?? "", /setup-pi-harness/);
 
 	// On a case-insensitive filesystem an unrelated lowercase context.md answers
 	// to the old name when read. It is not the glossary and the command never
@@ -335,7 +335,7 @@ test("a glossary under a name the skills stopped reading is a warning, and the f
 	assert.equal(finding(runDoctor(inputs({ files: lower, rootEntries: entries })), "domain docs").status, "ok");
 });
 
-test("a globally installed pi-myself is a warning; project-scoped is not", () => {
+test("a globally installed pi-harness is a warning; project-scoped is not", () => {
 	const files = healthyFiles();
 	const projectOnly = finding(runDoctor(inputs({ files })), "install scope");
 	assert.equal(projectOnly.status, "ok");
@@ -344,18 +344,18 @@ test("a globally installed pi-myself is a warning; project-scoped is not", () =>
 	// ADR 0007: the package carries process, so a global entry is the warning —
 	// with or without a project copy beside it (the pair is deduped or fatal, never
 	// the "loads twice" conflict this check used to name).
-	files[`${AGENT_DIR}/settings.json`] = JSON.stringify({ packages: [{ source: "git:github.com/MinhDuyDEV/pi-myself" }] });
+	files[`${AGENT_DIR}/settings.json`] = JSON.stringify({ packages: [{ source: "git:github.com/MinhDuyDEV/pi-harness" }] });
 	const both = finding(runDoctor(inputs({ files })), "install scope");
 	assert.equal(both.status, "warn");
 	assert.match(both.detail, /installed globally/);
 	assert.match(both.detail, /this project declares it too/);
-	assert.match(both.fix ?? "", /keep the project install: pi remove git:github\.com\/MinhDuyDEV\/pi-myself/);
+	assert.match(both.fix ?? "", /keep the project install: pi remove git:github\.com\/MinhDuyDEV\/pi-harness/);
 
 	// no project declaration: the fix installs it here rather than keeping a copy that is not there
 	files[`${REPO}/.pi/settings.json`] = JSON.stringify({ packages: ["npm:@heyhuynhgiabuu/pi-task"] });
 	const globalOnly = finding(runDoctor(inputs({ files })), "install scope");
 	assert.equal(globalOnly.status, "warn");
-	assert.match(globalOnly.fix ?? "", /pi install git:github\.com\/MinhDuyDEV\/pi-myself -l/);
+	assert.match(globalOnly.fix ?? "", /pi install git:github\.com\/MinhDuyDEV\/pi-harness -l/);
 
 	files[`${AGENT_DIR}/settings.json`] = "{ not json";
 	assert.equal(finding(runDoctor(inputs({ files })), "install scope").status, "ok", "an unreadable settings file declares no install");
@@ -398,7 +398,7 @@ test("runtime state git does not ignore is listed as the .gitignore lines to add
 	assert.match(finding(notRepo, "gitignore").detail, /not a git repository/);
 });
 
-test("/setup-pi-myself --check notifies one read-only report and provisions nothing", async () => {
+test("/setup-pi-harness --check notifies one read-only report and provisions nothing", async () => {
 	let handler: ((args: string, ctx: unknown) => Promise<void>) | undefined;
 	const pi = {
 		on: () => undefined,
